@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { normalizeExternalUrl, normalizeGoogleMapsUrl } from '../../lib/placeLinks';
 import type { Place, PlaceCategory, PlaceValues } from '../../types/place';
 import { AppIcon } from '../ui/AppIcon';
@@ -31,7 +31,8 @@ const categories: Array<{ value: PlaceCategory; label: string }> = [
 ];
 
 /**
- * Create/edit form for the categorized shared place library.
+ * Mobile-first place editor. The sheet header and actions stay visible while
+ * only the form body scrolls, preventing the close button from moving offscreen.
  */
 export function PlaceForm({
   place,
@@ -42,6 +43,11 @@ export function PlaceForm({
 }: PlaceFormProps) {
   const [values, setValues] = useState<PlaceValues>(emptyValues);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const onCancelRef = useRef(onCancel);
+
+  useEffect(() => {
+    onCancelRef.current = onCancel;
+  }, [onCancel]);
 
   useEffect(() => {
     setValues(
@@ -60,6 +66,27 @@ export function PlaceForm({
     );
     setValidationError(null);
   }, [place]);
+
+  /** Lock the page behind the sheet and support the Escape key on desktop. */
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const previousOverscrollBehavior = document.body.style.overscrollBehavior;
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !submitting) onCancelRef.current();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.overscrollBehavior = previousOverscrollBehavior;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [submitting]);
 
   const submitForm = async () => {
     const name = values.name.trim();
@@ -87,13 +114,24 @@ export function PlaceForm({
   };
 
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onCancel}>
-      <section
+    <div
+      className="modal-backdrop place-form-backdrop"
+      role="presentation"
+      onPointerDown={() => {
+        if (!submitting) onCancel();
+      }}
+    >
+      <form
         className="idea-form-card place-form-card"
         role="dialog"
         aria-modal="true"
         aria-labelledby="place-form-title"
-        onMouseDown={(event) => event.stopPropagation()}
+        aria-busy={submitting}
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submitForm();
+        }}
+        onPointerDown={(event) => event.stopPropagation()}
       >
         <header className="idea-form-card__header">
           <div>
@@ -103,141 +141,148 @@ export function PlaceForm({
             <h2 id="place-form-title">{place ? 'Edit place' : 'Add a place'}</h2>
           </div>
 
-          <button className="icon-button" type="button" onClick={onCancel} aria-label="Close form">
+          <button
+            className="icon-button"
+            type="button"
+            onClick={onCancel}
+            disabled={submitting}
+            aria-label="Close place form"
+          >
             <AppIcon name="close" size={19} />
           </button>
         </header>
 
-        <div className="form-stack">
-          <label className="field-group">
-            <span>Place name</span>
-            <input
-              autoFocus
-              type="text"
-              maxLength={140}
-              value={values.name}
-              placeholder="Favourite café or activity"
-              onChange={(event) =>
-                setValues((current) => ({ ...current, name: event.target.value }))
-              }
-            />
-          </label>
-
-          <label className="field-group">
-            <span>Category</span>
-            <select
-              value={values.category}
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  category: event.target.value as PlaceCategory,
-                }))
-              }
-            >
-              {categories.map((category) => (
-                <option value={category.value} key={category.value}>
-                  {category.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="field-group">
-            <span>Address <small>optional</small></span>
-            <input
-              type="text"
-              maxLength={300}
-              value={values.address}
-              placeholder="123 Example Street, Toronto"
-              onChange={(event) =>
-                setValues((current) => ({ ...current, address: event.target.value }))
-              }
-            />
-            <small>Used to create a Google Maps search when no share link is pasted.</small>
-          </label>
-
-          <label className="field-group">
-            <span>Website <small>optional</small></span>
-            <input
-              type="url"
-              inputMode="url"
-              value={values.websiteUrl}
-              placeholder="example.com"
-              onChange={(event) =>
-                setValues((current) => ({ ...current, websiteUrl: event.target.value }))
-              }
-            />
-          </label>
-
-          <label className="field-group">
-            <span>Google Maps link <small>optional</small></span>
-            <input
-              type="url"
-              inputMode="url"
-              value={values.mapsUrl}
-              placeholder="https://maps.app.goo.gl/..."
-              onChange={(event) =>
-                setValues((current) => ({ ...current, mapsUrl: event.target.value }))
-              }
-            />
-            <small>In Google Maps, choose Share, then copy and paste the link here.</small>
-          </label>
-
-          <label className="field-group">
-            <span>Notes <small>optional</small></span>
-            <textarea
-              rows={4}
-              maxLength={1500}
-              value={values.notes}
-              placeholder="What should we order, when should we go, or why did this look good?"
-              onChange={(event) =>
-                setValues((current) => ({ ...current, notes: event.target.value }))
-              }
-            />
-          </label>
-
-          <div className="place-form-options">
-            <label className="favorite-check">
+        <div className="place-form-card__body">
+          <div className="form-stack">
+            <label className="field-group">
+              <span>Place name</span>
               <input
-                type="checkbox"
-                checked={values.isFavorite}
+                type="text"
+                maxLength={140}
+                value={values.name}
+                placeholder="Favourite café or activity"
                 onChange={(event) =>
-                  setValues((current) => ({ ...current, isFavorite: event.target.checked }))
+                  setValues((current) => ({ ...current, name: event.target.value }))
                 }
               />
-              <span aria-hidden="true">♥</span>
-              Favourite
             </label>
 
-            <label className="favorite-check">
-              <input
-                type="checkbox"
-                checked={values.visited}
+            <label className="field-group">
+              <span>Category</span>
+              <select
+                value={values.category}
                 onChange={(event) =>
-                  setValues((current) => ({ ...current, visited: event.target.checked }))
+                  setValues((current) => ({
+                    ...current,
+                    category: event.target.value as PlaceCategory,
+                  }))
+                }
+              >
+                {categories.map((category) => (
+                  <option value={category.value} key={category.value}>
+                    {category.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field-group">
+              <span>Address <small>optional</small></span>
+              <input
+                type="text"
+                maxLength={300}
+                value={values.address}
+                placeholder="123 Example Street, Toronto"
+                onChange={(event) =>
+                  setValues((current) => ({ ...current, address: event.target.value }))
                 }
               />
-              <AppIcon name="check" size={18} />
-              Already visited
+              <small>Used to create a Google Maps search when no share link is pasted.</small>
             </label>
+
+            <label className="field-group">
+              <span>Website <small>optional</small></span>
+              <input
+                type="url"
+                inputMode="url"
+                value={values.websiteUrl}
+                placeholder="example.com"
+                onChange={(event) =>
+                  setValues((current) => ({ ...current, websiteUrl: event.target.value }))
+                }
+              />
+            </label>
+
+            <label className="field-group">
+              <span>Google Maps link <small>optional</small></span>
+              <input
+                type="url"
+                inputMode="url"
+                value={values.mapsUrl}
+                placeholder="https://maps.app.goo.gl/..."
+                onChange={(event) =>
+                  setValues((current) => ({ ...current, mapsUrl: event.target.value }))
+                }
+              />
+              <small>In Google Maps, choose Share, then copy and paste the link here.</small>
+            </label>
+
+            <label className="field-group">
+              <span>Notes <small>optional</small></span>
+              <textarea
+                rows={4}
+                maxLength={1500}
+                value={values.notes}
+                placeholder="What should we order, when should we go, or why did this look good?"
+                onChange={(event) =>
+                  setValues((current) => ({ ...current, notes: event.target.value }))
+                }
+              />
+            </label>
+
+            <div className="place-form-options">
+              <label className="favorite-check">
+                <input
+                  type="checkbox"
+                  checked={values.isFavorite}
+                  onChange={(event) =>
+                    setValues((current) => ({ ...current, isFavorite: event.target.checked }))
+                  }
+                />
+                <span aria-hidden="true">♥</span>
+                Favourite
+              </label>
+
+              <label className="favorite-check">
+                <input
+                  type="checkbox"
+                  checked={values.visited}
+                  onChange={(event) =>
+                    setValues((current) => ({ ...current, visited: event.target.checked }))
+                  }
+                />
+                <AppIcon name="check" size={18} />
+                Already visited
+              </label>
+            </div>
+
+            {validationError || serverError ? (
+              <p className="form-message form-message--error" role="alert">
+                {validationError ?? serverError}
+              </p>
+            ) : null}
           </div>
-
-          {validationError || serverError ? (
-            <p className="form-message form-message--error" role="alert">
-              {validationError ?? serverError}
-            </p>
-          ) : null}
         </div>
 
-        <div className="idea-form-card__actions">
+        <footer className="idea-form-card__actions place-form-card__actions">
           <button className="secondary-button" type="button" onClick={onCancel} disabled={submitting}>
             Cancel
           </button>
-          <button className="primary-button" type="button" onClick={() => void submitForm()} disabled={submitting}>
+          <button className="primary-button" type="submit" disabled={submitting}>
             {submitting ? 'Saving…' : place ? 'Save changes' : 'Save place'}
           </button>
-        </div>
-      </section>
+        </footer>
+      </form>
     </div>
   );
 }

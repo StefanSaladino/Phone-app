@@ -15,8 +15,8 @@ Phases 1 through 6 are implemented:
 - idea, planned, and completed states
 - planned dates, favourites, filters, and confirmation states
 - categorized saved-place CRUD with free Google Maps links
-- inbox notes and private next-login surprises
-- post-it reveal, seen/dismissed states, and sent/received history
+- inbox notes and live/app-opening surprise popups
+- realtime post-it delivery, seen/dismissed states, and sent/received history
 - recipient-only note-state permissions protected by Row Level Security
 - initial database schema with Row Level Security
 - installable PWA manifest, app icons, offline shell, and Netlify release configuration
@@ -47,6 +47,7 @@ supabase/migrations/0001_initial_schema.sql
 supabase/migrations/0002_profile_names.sql
 supabase/migrations/0003_notes_delivery.sql
 supabase/migrations/0004_notes_delivery_direct_access.sql
+supabase/migrations/0005_realtime_surprise_notes.sql
 ```
 
 ### 3. Create the two users

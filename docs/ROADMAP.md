@@ -77,7 +77,7 @@ Together is a private, installable web app for exactly two people. It is intenti
 
 ## Phase 5 — Little notes ✅
 
-**Goal:** Add private messages and next-login surprises.
+**Goal:** Add private messages and surprise popups on app open or while the recipient is online.
 
 - Write a note to the partner
 - Normal inbox delivery
@@ -86,7 +86,7 @@ Together is a private, installable web app for exactly two people. It is intenti
 - Sent and received views
 - Secure database functions for note state changes
 
-**Exit check:** A surprise note appears once for the intended recipient and cannot be edited by the recipient.
+**Exit check:** A surprise note appears once for the intended recipient—live when the app is open or on the next app opening—and cannot be edited by the recipient.
 
 ## Phase 6 — iPhone installation and release ✅
 

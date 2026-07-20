@@ -15,7 +15,7 @@ const emptyValues: NoteValues = {
   deliveryMode: 'inbox',
 };
 
-/** Composer for a normal inbox note or a next-login surprise. */
+/** Composer for a normal inbox note or an app-opening/live surprise. */
 export function NoteForm({
   partnerFirstName,
   submitting,
@@ -112,8 +112,8 @@ export function NoteForm({
               >
                 <AppIcon name="sparkle" size={20} />
                 <span>
-                  <strong>Next-login surprise</strong>
-                  <small>Pops up the next time {partnerFirstName} opens the app.</small>
+                  <strong>Surprise popup</strong>
+                  <small>Appears now if {partnerFirstName} is using Together, or the next time the app opens.</small>
                 </span>
               </button>
             </div>
