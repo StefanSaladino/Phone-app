@@ -2,6 +2,8 @@ import { AppIcon } from '../ui/AppIcon';
 
 interface TopBarProps {
   title: string;
+  workspaceName: string;
+  displayName: string;
   email?: string;
   onSignOut: () => void;
 }
@@ -9,18 +11,28 @@ interface TopBarProps {
 /**
  * Compact application header shared by every protected page.
  */
-export function TopBar({ title, email, onSignOut }: TopBarProps) {
-  const initial = email?.charAt(0).toUpperCase() ?? 'U';
+export function TopBar({
+  title,
+  workspaceName,
+  displayName,
+  email,
+  onSignOut,
+}: TopBarProps) {
+  const initial = (displayName || email || 'U').charAt(0).toUpperCase();
 
   return (
     <header className="top-bar">
       <div>
-        <p className="top-bar__eyebrow">Just us</p>
+        <p className="top-bar__eyebrow">{workspaceName}</p>
         <h1>{title}</h1>
       </div>
 
       <div className="top-bar__actions">
-        <span className="top-bar__avatar" aria-label={email ?? 'Signed-in user'}>
+        <span
+          className="top-bar__avatar"
+          aria-label={`Signed in as ${displayName || email || 'user'}`}
+          title={displayName || email}
+        >
           {initial}
         </span>
         <button

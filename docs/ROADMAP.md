@@ -1,3 +1,9 @@
+# Implementation status
+
+- Phase 1 — Complete
+- Phase 2 — Complete
+- Phase 3 — Next
+
 # Together — project roadmap
 
 Together is a private, installable web app for exactly two people. It is intentionally designed to remain free to build, host, and use.

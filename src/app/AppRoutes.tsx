@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 import { PublicOnlyRoute } from '../components/auth/PublicOnlyRoute';
+import { CoupleGuard } from '../components/couple/CoupleGuard';
 import { AppShell } from '../components/layout/AppShell';
 import { DashboardPage } from '../pages/DashboardPage';
 import { DateIdeasPage } from '../pages/DateIdeasPage';
@@ -11,7 +12,7 @@ import { LoginPage } from '../pages/auth/LoginPage';
 
 /**
  * Central application route table.
- * Public, protected, and layout concerns remain separate from page components.
+ * Authentication, couple loading, layout, and page concerns remain separate.
  */
 export function AppRoutes() {
   return (
@@ -21,11 +22,13 @@ export function AppRoutes() {
       </Route>
 
       <Route element={<ProtectedRoute />}>
-        <Route element={<AppShell />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="ideas" element={<DateIdeasPage />} />
-          <Route path="places" element={<PlacesPage />} />
-          <Route path="notes" element={<NotesPage />} />
+        <Route element={<CoupleGuard />}>
+          <Route element={<AppShell />}>
+            <Route index element={<DashboardPage />} />
+            <Route path="ideas" element={<DateIdeasPage />} />
+            <Route path="places" element={<PlacesPage />} />
+            <Route path="notes" element={<NotesPage />} />
+          </Route>
         </Route>
       </Route>
 

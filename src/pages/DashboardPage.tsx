@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { AppIcon } from '../components/ui/AppIcon';
+import { useCouple } from '../hooks/useCouple';
 
 const quickActions = [
   {
@@ -23,14 +24,25 @@ const quickActions = [
 ];
 
 /**
- * Initial landing page. Live summaries will replace the placeholder counts next.
+ * Shared landing page with live couple names and database-backed totals.
  */
 export function DashboardPage() {
+  const { workspace } = useCouple();
+
+  if (!workspace) return null;
+
+  const { currentMember, partnerMember, counts } = workspace;
+
   return (
     <div className="page-stack">
       <section className="hero-card">
-        <p className="hero-card__eyebrow">Something to look forward to</p>
-        <h2>Keep the good ideas somewhere you’ll both remember.</h2>
+        <p className="hero-card__eyebrow">
+          Hello {currentMember.profile.first_name}
+        </p>
+        <h2>
+          Keep the good ideas somewhere you and {partnerMember.profile.first_name} will
+          remember.
+        </h2>
         <p>
           A shared list for spontaneous plans, favourite spots, and small messages meant for
           one another.
@@ -65,15 +77,15 @@ export function DashboardPage() {
 
       <section className="summary-card" aria-label="Shared list summary">
         <div>
-          <strong>0</strong>
+          <strong>{counts.dateIdeas}</strong>
           <span>Date ideas</span>
         </div>
         <div>
-          <strong>0</strong>
+          <strong>{counts.savedPlaces}</strong>
           <span>Saved places</span>
         </div>
         <div>
-          <strong>0</strong>
+          <strong>{counts.unreadNotes}</strong>
           <span>Unread notes</span>
         </div>
       </section>

@@ -240,3 +240,42 @@
     display: none;
   }
 }
+
+/* =========================================================
+   COUPLE WORKSPACE STATES
+========================================================= */
+.workspace-error-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: var(--color-canvas);
+}
+
+.workspace-error-card {
+  width: min(100%, 31rem);
+  padding: 2rem 1.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  text-align: center;
+}
+
+.workspace-error-card__mark {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--color-accent);
+  font-size: 2.25rem;
+}
+
+.workspace-error-card h1 {
+  margin-bottom: 0.65rem;
+  font-size: clamp(1.8rem, 8vw, 2.6rem);
+}
+
+.workspace-error-card > p:not(.section-heading__eyebrow) {
+  margin-bottom: 1.25rem;
+  color: var(--color-muted);
+  line-height: 1.6;
+}
