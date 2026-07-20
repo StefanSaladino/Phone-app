@@ -155,8 +155,7 @@ export function NotesPage() {
         <div>
           <h3>Make it a surprise</h3>
           <p>
-            A note can stay in the inbox or appear as a post-it the next time {partnerFirstName}
-            opens the app.
+            A note can stay in the inbox or appear as a post-it the next time {partnerFirstName} opens the app.
           </p>
         </div>
       </section>
