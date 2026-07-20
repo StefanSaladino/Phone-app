@@ -1,0 +1,19 @@
+# Netlify configuration for a client-rendered React application.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Send every application route to index.html so React Router can resolve it.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Conservative baseline security headers for the initial application shell.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"

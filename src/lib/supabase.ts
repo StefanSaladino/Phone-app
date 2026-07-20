@@ -1,0 +1,16 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+if (!supabaseUrl || !supabasePublishableKey) {
+  throw new Error(
+    'Missing Supabase environment variables. Copy .env.example to .env.local and add your project values.',
+  );
+}
+
+/**
+ * One shared Supabase browser client for authentication and data access.
+ * The publishable key is safe to expose; database access is enforced by RLS.
+ */
+export const supabase = createClient(supabaseUrl, supabasePublishableKey);
