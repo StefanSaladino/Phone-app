@@ -16,7 +16,10 @@ interface AppIconProps {
     | 'search'
     | 'external-link'
     | 'map'
-    | 'globe';
+    | 'globe'
+    | 'mail'
+    | 'send'
+    | 'sparkle';
   size?: number;
 }
 
@@ -165,6 +168,34 @@ export function AppIcon({ name, size = 22 }: AppIconProps) {
       <svg {...commonProps}>
         <path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3Z" />
         <path d="M9 3v15M15 6v15" />
+      </svg>
+    );
+  }
+
+
+  if (name === 'mail') {
+    return (
+      <svg {...commonProps}>
+        <rect x="3" y="5" width="18" height="14" rx="2.5" />
+        <path d="m4 7 8 6 8-6" />
+      </svg>
+    );
+  }
+
+  if (name === 'send') {
+    return (
+      <svg {...commonProps}>
+        <path d="m3 11 18-8-8 18-2.5-7.5Z" />
+        <path d="M10.5 13.5 21 3" />
+      </svg>
+    );
+  }
+
+  if (name === 'sparkle') {
+    return (
+      <svg {...commonProps}>
+        <path d="M12 2.5c.7 4.5 3 6.8 7.5 7.5-4.5.7-6.8 3-7.5 7.5-.7-4.5-3-6.8-7.5-7.5 4.5-.7 6.8-3 7.5-7.5Z" />
+        <path d="M19 17.5c.25 1.6 1.1 2.45 2.5 2.5-1.4.25-2.25 1.1-2.5 2.5-.25-1.4-1.1-2.25-2.5-2.5 1.4-.05 2.25-.9 2.5-2.5Z" />
       </svg>
     );
   }

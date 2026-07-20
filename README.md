@@ -6,7 +6,7 @@ The project has a strict **$0 operating-cost target**. It uses React and Vite in
 
 ## Current status
 
-Phases 1 through 3 are implemented:
+Phases 1 through 5 are implemented:
 
 - complete Vite + React + TypeScript repository
 - Supabase email/password sessions and protected routes
@@ -14,10 +14,12 @@ Phases 1 through 3 are implemented:
 - fully shared date-idea CRUD
 - idea, planned, and completed states
 - planned dates, favourites, filters, and confirmation states
+- categorized saved-place CRUD with free Google Maps links
+- inbox notes and private next-login surprises
+- post-it reveal, seen/dismissed states, and sent/received history
+- database functions that restrict note-state changes
 - initial database schema with Row Level Security
 - Netlify SPA configuration
-
-Saved places and notes remain placeholders until their individual phases.
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the complete build plan.
 
@@ -38,10 +40,12 @@ npm install
 
 ### 2. Create a Supabase project
 
-Create one free Supabase project. In its SQL Editor, run:
+Create one free Supabase project. In its SQL Editor, run these migrations in order:
 
 ```text
 supabase/migrations/0001_initial_schema.sql
+supabase/migrations/0002_profile_names.sql
+supabase/migrations/0003_notes_delivery.sql
 ```
 
 ### 3. Create the two users
@@ -120,6 +124,8 @@ src/
     auth/            route protection
     layout/          shared authenticated layout
     date-ideas/      date-idea cards, filters, forms, and dialogs
+    places/          saved-place cards, filters, forms, and dialogs
+    notes/           note history, composer, and post-it reveal
     ui/              reusable visual components
   contexts/          global state providers
   hooks/             typed context hooks

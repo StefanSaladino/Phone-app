@@ -2,6 +2,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useCouple } from '../../hooks/useCouple';
 import { BottomNavigation } from './BottomNavigation';
+import { SurpriseNoteController } from '../notes/SurpriseNoteController';
 import { TopBar } from './TopBar';
 
 const pageTitles: Record<string, string> = {
@@ -51,6 +52,7 @@ export function AppShell() {
       </main>
 
       <BottomNavigation />
+      <SurpriseNoteController />
     </div>
   );
 }

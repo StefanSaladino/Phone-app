@@ -4,7 +4,7 @@
 - Phase 2 — Complete
 - Phase 3 — Complete
 - Phase 4 — Complete
-- Phase 5 — Next
+- Phase 5 — Complete
 
 # Together — project roadmap
 
@@ -74,7 +74,7 @@ Together is a private, installable web app for exactly two people. It is intenti
 
 **Exit check:** The shared list filters correctly and opens external map links without a paid maps API.
 
-## Phase 5 — Little notes
+## Phase 5 — Little notes ✅
 
 **Goal:** Add private messages and next-login surprises.
 
