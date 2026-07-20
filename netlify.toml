@@ -1,15 +1,15 @@
-# Netlify configuration for a client-rendered React application.
+# Netlify configuration for the client-rendered Together PWA.
 [build]
   command = "npm run build"
   publish = "dist"
 
-# Send every application route to index.html so React Router can resolve it.
+# Send application routes to index.html so React Router can resolve them.
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Conservative baseline security headers for the initial application shell.
+# Conservative security headers for the application shell.
 [[headers]]
   for = "/*"
   [headers.values]
@@ -17,3 +17,29 @@
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Never retain an outdated service worker at the CDN or browser edge.
+[[headers]]
+  for = "/service-worker.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Service-Worker-Allowed = "/"
+
+# Let deployment changes to the manifest propagate quickly.
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, must-revalidate"
+    Content-Type = "application/manifest+json"
+
+# Icons are version-stable static assets.
+[[headers]]
+  for = "/icons/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Vite fingerprints built JS and CSS assets.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

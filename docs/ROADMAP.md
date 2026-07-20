@@ -5,6 +5,7 @@
 - Phase 3 — Complete
 - Phase 4 — Complete
 - Phase 5 — Complete
+- Phase 6 — Complete
 
 # Together — project roadmap
 
@@ -87,7 +88,7 @@ Together is a private, installable web app for exactly two people. It is intenti
 
 **Exit check:** A surprise note appears once for the intended recipient and cannot be edited by the recipient.
 
-## Phase 6 — iPhone installation and release
+## Phase 6 — iPhone installation and release ✅
 
 **Goal:** Finish the app as a polished, private PWA.
 

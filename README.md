@@ -6,7 +6,7 @@ The project has a strict **$0 operating-cost target**. It uses React and Vite in
 
 ## Current status
 
-Phases 1 through 5 are implemented:
+Phases 1 through 6 are implemented:
 
 - complete Vite + React + TypeScript repository
 - Supabase email/password sessions and protected routes
@@ -17,9 +17,9 @@ Phases 1 through 5 are implemented:
 - categorized saved-place CRUD with free Google Maps links
 - inbox notes and private next-login surprises
 - post-it reveal, seen/dismissed states, and sent/received history
-- database functions that restrict note-state changes
+- recipient-only note-state permissions protected by Row Level Security
 - initial database schema with Row Level Security
-- Netlify SPA configuration
+- installable PWA manifest, app icons, offline shell, and Netlify release configuration
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the complete build plan.
 
@@ -46,6 +46,7 @@ Create one free Supabase project. In its SQL Editor, run these migrations in ord
 supabase/migrations/0001_initial_schema.sql
 supabase/migrations/0002_profile_names.sql
 supabase/migrations/0003_notes_delivery.sql
+supabase/migrations/0004_notes_delivery_direct_access.sql
 ```
 
 ### 3. Create the two users
@@ -127,9 +128,11 @@ src/
     places/          saved-place cards, filters, forms, and dialogs
     notes/           note history, composer, and post-it reveal
     ui/              reusable visual components
+    pwa/             installation and connectivity components
   contexts/          global state providers
   hooks/             typed context hooks
   lib/               external clients and configuration
+  pwa/               production service-worker registration
   pages/             route-level screens
   services/          Supabase feature queries and mutations
   types/             shared database and feature types
@@ -139,3 +142,7 @@ supabase/
 docs/
   ROADMAP.md          phased implementation plan
 ```
+
+## Production deployment
+
+Phase 6 includes the manifest, icons, service worker, offline messaging, and Netlify cache rules required for the installable release. Follow [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) to deploy on Netlify Free and add the app to both iPhone Home Screens.

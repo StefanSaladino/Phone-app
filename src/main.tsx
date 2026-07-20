@@ -5,6 +5,7 @@ import App from './App';
 import { AuthProvider } from './contexts/AuthProvider';
 import { CoupleProvider } from './contexts/CoupleProvider';
 import './styles/index.css';
+import { registerServiceWorker } from './pwa/registerServiceWorker';
 
 const rootElement = document.getElementById('root');
 
@@ -23,3 +24,5 @@ createRoot(rootElement).render(
     </BrowserRouter>
   </StrictMode>,
 );
+
+registerServiceWorker();

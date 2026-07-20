@@ -3,6 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useCouple } from '../../hooks/useCouple';
 import { BottomNavigation } from './BottomNavigation';
 import { SurpriseNoteController } from '../notes/SurpriseNoteController';
+import { NetworkStatusBanner } from '../pwa/NetworkStatusBanner';
 import { TopBar } from './TopBar';
 
 const pageTitles: Record<string, string> = {
@@ -46,6 +47,8 @@ export function AppShell() {
         email={user?.email}
         onSignOut={() => void handleSignOut()}
       />
+
+      <NetworkStatusBanner />
 
       <main className="app-content">
         <Outlet />
