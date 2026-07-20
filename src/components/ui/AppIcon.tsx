@@ -1,5 +1,18 @@
 interface AppIconProps {
-  name: 'home' | 'ideas' | 'places' | 'notes' | 'plus' | 'logout';
+  name:
+    | 'home'
+    | 'ideas'
+    | 'places'
+    | 'notes'
+    | 'plus'
+    | 'logout'
+    | 'close'
+    | 'heart'
+    | 'calendar'
+    | 'edit'
+    | 'trash'
+    | 'check'
+    | 'undo';
   size?: number;
 }
 
@@ -61,6 +74,65 @@ export function AppIcon({ name, size = 22 }: AppIconProps) {
     return (
       <svg {...commonProps}>
         <path d="M12 5v14M5 12h14" />
+      </svg>
+    );
+  }
+
+  if (name === 'close') {
+    return (
+      <svg {...commonProps}>
+        <path d="m6 6 12 12M18 6 6 18" />
+      </svg>
+    );
+  }
+
+  if (name === 'heart') {
+    return (
+      <svg {...commonProps}>
+        <path d="M20.8 4.9a5.5 5.5 0 0 0-7.8 0L12 6l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.3a5.5 5.5 0 0 0 0-7.8Z" />
+      </svg>
+    );
+  }
+
+  if (name === 'calendar') {
+    return (
+      <svg {...commonProps}>
+        <path d="M6 2v4M18 2v4M3.5 9h17" />
+        <rect x="3.5" y="4" width="17" height="17" rx="2.5" />
+      </svg>
+    );
+  }
+
+  if (name === 'edit') {
+    return (
+      <svg {...commonProps}>
+        <path d="M12 20h9" />
+        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
+      </svg>
+    );
+  }
+
+  if (name === 'trash') {
+    return (
+      <svg {...commonProps}>
+        <path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6M14 11v6" />
+      </svg>
+    );
+  }
+
+  if (name === 'check') {
+    return (
+      <svg {...commonProps}>
+        <path d="m5 12 4 4L19 6" />
+      </svg>
+    );
+  }
+
+  if (name === 'undo') {
+    return (
+      <svg {...commonProps}>
+        <path d="m9 7-5 5 5 5" />
+        <path d="M4 12h10a6 6 0 0 1 6 6" />
       </svg>
     );
   }

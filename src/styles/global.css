@@ -145,3 +145,68 @@ select:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+.secondary-button,
+.danger-button,
+.text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: var(--radius-pill);
+  font-weight: 750;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.secondary-button,
+.danger-button {
+  min-height: 2.9rem;
+  padding: 0.7rem 1rem;
+}
+
+.secondary-button {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.danger-button {
+  border: 1px solid transparent;
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.text-button {
+  min-height: 2.55rem;
+  padding: 0.55rem 0.7rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.text-button--danger {
+  color: var(--color-danger);
+}
+
+.secondary-button:hover,
+.text-button:hover {
+  background: var(--color-surface-soft);
+}
+
+.danger-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(0.94);
+}
+
+.secondary-button:disabled,
+.danger-button:disabled,
+.text-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none;
+}

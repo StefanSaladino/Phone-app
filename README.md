@@ -6,16 +6,18 @@ The project has a strict **$0 operating-cost target**. It uses React and Vite in
 
 ## Current status
 
-Phase 1 is implemented:
+Phases 1 through 3 are implemented:
 
 - complete Vite + React + TypeScript repository
-- Supabase email/password session management
-- protected routes
-- private app shell and mobile navigation
+- Supabase email/password sessions and protected routes
+- two-person couple workspace with profile names and live totals
+- fully shared date-idea CRUD
+- idea, planned, and completed states
+- planned dates, favourites, filters, and confirmation states
 - initial database schema with Row Level Security
 - Netlify SPA configuration
 
-The feature pages are intentionally placeholders until their individual phases.
+Saved places and notes remain placeholders until their individual phases.
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the complete build plan.
 
@@ -117,11 +119,14 @@ src/
   components/
     auth/            route protection
     layout/          shared authenticated layout
+    date-ideas/      date-idea cards, filters, forms, and dialogs
     ui/              reusable visual components
   contexts/          global state providers
   hooks/             typed context hooks
   lib/               external clients and configuration
   pages/             route-level screens
+  services/          Supabase feature queries and mutations
+  types/             shared database and feature types
   styles/            tokens and separated style concerns
 supabase/
   migrations/        database schema and security policies
