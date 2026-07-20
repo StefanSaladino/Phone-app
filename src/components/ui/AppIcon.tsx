@@ -4,6 +4,9 @@ interface AppIconProps {
     | 'ideas'
     | 'places'
     | 'notes'
+    | 'bets'
+    | 'trophy'
+    | 'lock'
     | 'plus'
     | 'logout'
     | 'close'
@@ -73,6 +76,36 @@ export function AppIcon({ name, size = 22 }: AppIconProps) {
       <svg {...commonProps}>
         <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-5 4v-4.7A2.5 2.5 0 0 1 4 13.5Z" />
         <path d="M8 8h8M8 12h5" />
+      </svg>
+    );
+  }
+
+  if (name === 'bets') {
+    return (
+      <svg {...commonProps}>
+        <circle cx="8" cy="8" r="4.5" />
+        <circle cx="16" cy="16" r="4.5" />
+        <path d="M6.5 6.5h.01M9.5 9.5h.01M14.5 14.5h.01M17.5 17.5h.01" />
+        <path d="m11 11 2 2" />
+      </svg>
+    );
+  }
+
+  if (name === 'trophy') {
+    return (
+      <svg {...commonProps}>
+        <path d="M8 4h8v4a4 4 0 0 1-8 0Z" />
+        <path d="M8 6H5v1a4 4 0 0 0 4 4M16 6h3v1a4 4 0 0 1-4 4" />
+        <path d="M12 12v5M8.5 21h7M10 17h4" />
+      </svg>
+    );
+  }
+
+  if (name === 'lock') {
+    return (
+      <svg {...commonProps}>
+        <rect x="4.5" y="10" width="15" height="11" rx="2.5" />
+        <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" />
       </svg>
     );
   }

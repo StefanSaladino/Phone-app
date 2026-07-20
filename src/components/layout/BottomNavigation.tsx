@@ -5,12 +5,11 @@ const navigationItems = [
   { to: '/', label: 'Home', icon: 'home' as const, end: true },
   { to: '/ideas', label: 'Ideas', icon: 'ideas' as const },
   { to: '/places', label: 'Places', icon: 'places' as const },
+  { to: '/bets', label: 'Bets', icon: 'bets' as const },
   { to: '/notes', label: 'Notes', icon: 'notes' as const },
 ];
 
-/**
- * Thumb-friendly primary navigation for the installed mobile web app.
- */
+/** Thumb-friendly primary navigation for the installed mobile web app. */
 export function BottomNavigation() {
   return (
     <nav className="bottom-navigation" aria-label="Primary navigation">

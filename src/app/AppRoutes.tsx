@@ -1,18 +1,13 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { Navigate, Route, Routes } from 'react-router';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 import { PublicOnlyRoute } from '../components/auth/PublicOnlyRoute';
 import { CoupleGuard } from '../components/couple/CoupleGuard';
 import { AppShell } from '../components/layout/AppShell';
 
 /*
- * Route-level dynamic imports.
- *
- * Each page currently uses a named export, so the imported component is
- * converted into the default-export shape required by React.lazy().
- *
- * These declarations must remain outside AppRoutes so React does not create
- * a new lazy component whenever the route table renders.
+ * Route-level dynamic imports keep each major feature out of the initial
+ * JavaScript bundle until that page is opened.
  */
 const DashboardPage = lazy(() =>
   import('../pages/DashboardPage').then((module) => ({
@@ -29,6 +24,12 @@ const DateIdeasPage = lazy(() =>
 const PlacesPage = lazy(() =>
   import('../pages/PlacesPage').then((module) => ({
     default: module.PlacesPage,
+  })),
+);
+
+const BetsPage = lazy(() =>
+  import('../pages/BetsPage').then((module) => ({
+    default: module.BetsPage,
   })),
 );
 
@@ -55,13 +56,6 @@ interface LazyRouteProps {
   fullPage?: boolean;
 }
 
-/**
- * Lightweight loading state used inside the authenticated application shell.
- *
- * Keeping the Suspense boundary around the individual page means the header,
- * bottom navigation, couple context, and surprise-note controller remain
- * mounted while the requested route chunk downloads.
- */
 function RoutePageFallback() {
   return (
     <section
@@ -70,19 +64,13 @@ function RoutePageFallback() {
       aria-live="polite"
       aria-busy="true"
     >
-      <span className="route-loader__mark" aria-hidden="true">
-        ♥
-      </span>
+      <span className="route-loader__mark" aria-hidden="true">♥</span>
       <h3>Opening this page…</h3>
       <p>Just a moment.</p>
     </section>
   );
 }
 
-/**
- * Full-page loading state for routes that do not render inside AppShell,
- * including the login and not-found pages.
- */
 function FullPageFallback() {
   return (
     <main
@@ -91,37 +79,24 @@ function FullPageFallback() {
       aria-live="polite"
       aria-busy="true"
     >
-      <span className="route-loader__mark" aria-hidden="true">
-        ♥
-      </span>
+      <span className="route-loader__mark" aria-hidden="true">♥</span>
       <p>Opening Together…</p>
     </main>
   );
 }
 
-/**
- * Reusable Suspense boundary for lazy route modules.
- */
 function LazyRoute({ children, fullPage = false }: LazyRouteProps) {
   return (
-    <Suspense
-      fallback={fullPage ? <FullPageFallback /> : <RoutePageFallback />}
-    >
+    <Suspense fallback={fullPage ? <FullPageFallback /> : <RoutePageFallback />}>
       {children}
     </Suspense>
   );
 }
 
-/**
- * Central application route table.
- *
- * Authentication, couple-workspace loading, shared layout, and route-page
- * loading remain separate concerns.
- */
+/** Central application route table. */
 export function AppRoutes() {
   return (
     <Routes>
-      {/* Routes available only while signed out. */}
       <Route element={<PublicOnlyRoute />}>
         <Route
           path="/login"
@@ -133,7 +108,6 @@ export function AppRoutes() {
         />
       </Route>
 
-      {/* Private routes require both authentication and a valid couple. */}
       <Route element={<ProtectedRoute />}>
         <Route element={<CoupleGuard />}>
           <Route element={<AppShell />}>
@@ -145,7 +119,6 @@ export function AppRoutes() {
                 </LazyRoute>
               }
             />
-
             <Route
               path="ideas"
               element={
@@ -154,7 +127,6 @@ export function AppRoutes() {
                 </LazyRoute>
               }
             />
-
             <Route
               path="places"
               element={
@@ -163,7 +135,14 @@ export function AppRoutes() {
                 </LazyRoute>
               }
             />
-
+            <Route
+              path="bets"
+              element={
+                <LazyRoute>
+                  <BetsPage />
+                </LazyRoute>
+              }
+            />
             <Route
               path="notes"
               element={
@@ -176,7 +155,6 @@ export function AppRoutes() {
         </Route>
       </Route>
 
-      {/* Standalone error route. */}
       <Route
         path="/404"
         element={
@@ -185,7 +163,6 @@ export function AppRoutes() {
           </LazyRoute>
         }
       />
-
       <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   );

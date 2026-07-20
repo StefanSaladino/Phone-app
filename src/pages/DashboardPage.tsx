@@ -17,16 +17,20 @@ const quickActions = [
     detail: 'Food, coffee, drinks, dessert, or fun.',
   },
   {
+    to: '/bets',
+    icon: 'bets' as const,
+    label: 'Make a bet',
+    detail: 'Set the predictions and build your wheels.',
+  },
+  {
     to: '/notes',
     icon: 'notes' as const,
     label: 'Leave a note',
-    detail: 'Make it appear on their next visit.',
+    detail: 'Send a note or a surprise popup.',
   },
 ];
 
-/**
- * Shared landing page with live couple names and database-backed totals.
- */
+/** Shared landing page with live couple names and database-backed totals. */
 export function DashboardPage() {
   const { workspace } = useCouple();
 
@@ -37,16 +41,12 @@ export function DashboardPage() {
   return (
     <div className="page-stack">
       <section className="hero-card">
-        <p className="hero-card__eyebrow">
-          Hello {currentMember.profile.first_name}
-        </p>
+        <p className="hero-card__eyebrow">Hello {currentMember.profile.first_name}</p>
         <h2>
-          Keep the good ideas somewhere you and {partnerMember.profile.first_name} will
-          remember.
+          Keep the good ideas somewhere you and {partnerMember.profile.first_name} will remember.
         </h2>
         <p>
-          A shared list for spontaneous plans, favourite spots, and small messages meant for
-          one another.
+          A shared list for spontaneous plans, favourite spots, playful bets, and small messages meant for one another.
         </p>
       </section>
 
@@ -68,9 +68,7 @@ export function DashboardPage() {
                 <strong>{action.label}</strong>
                 <small>{action.detail}</small>
               </span>
-              <span className="quick-action-card__arrow" aria-hidden="true">
-                →
-              </span>
+              <span className="quick-action-card__arrow" aria-hidden="true">→</span>
             </Link>
           ))}
         </div>

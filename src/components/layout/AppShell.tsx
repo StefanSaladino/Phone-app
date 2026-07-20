@@ -1,21 +1,20 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useCouple } from '../../hooks/useCouple';
-import { BottomNavigation } from './BottomNavigation';
 import { SurpriseNoteController } from '../notes/SurpriseNoteController';
 import { NetworkStatusBanner } from '../pwa/NetworkStatusBanner';
+import { BottomNavigation } from './BottomNavigation';
 import { TopBar } from './TopBar';
 
 const pageTitles: Record<string, string> = {
   '/': 'Our space',
   '/ideas': 'Date ideas',
   '/places': 'Saved places',
+  '/bets': 'Bets',
   '/notes': 'Little notes',
 };
 
-/**
- * Shared authenticated layout containing the top bar, content, and mobile nav.
- */
+/** Shared authenticated layout containing the top bar, content, and mobile nav. */
 export function AppShell() {
   const { pathname } = useLocation();
   const navigate = useNavigate();

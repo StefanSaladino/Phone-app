@@ -6,6 +6,7 @@
 - Phase 4 — Complete
 - Phase 5 — Complete
 - Phase 6 — Complete
+- Phase 7 — In progress
 
 # Together — project roadmap
 
@@ -103,15 +104,48 @@ Together is a private, installable web app for exactly two people. It is intenti
 
 **Exit check:** Both people can add the app to their iPhone Home Screens and use the production deployment privately.
 
+## Phase 7 — Bets foundation
+
+**Goal:** Add private prize and punishment wheels plus locked bet invitations.
+
+- Personal prizes created privately for oneself
+- Punishments created privately for the partner
+- Wheel contents hidden from the partner until a selected result is revealed
+- Readiness-only sharing with no partner approval requirement
+- Bet creation with both predictions and settlement conditions
+- Accept, reject, and cancel invitation flows
+- Private wheel snapshots when a bet becomes active
+- Immutable active bet terms and hidden snapshot contents
+
+**Exit check:** Both partners can privately prepare complete wheels, agree to a bet, and see the same locked wager without seeing each other’s wheel entries.
+
+## Phase 8 — Secure settlement game
+
+**Goal:** Settle active bets fairly and reveal the result through the coin and wheels.
+
+- Winner proposal and partner confirmation
+- Dispute, draw, and mutual cancellation handling
+- Server-authoritative prize-or-punishment coin flip
+- Server-authoritative wheel selection
+- Coin and wheel reveal animations
+- Completion, waiver, and history tracking
+
+## Phase 9 — Push notifications
+
+**Goal:** Deliver scheduled date and bet notifications while the PWA is closed.
+
+- Per-device Web Push subscriptions
+- Notification preferences and quiet hours
+- Date reminder scheduling
+- Bet invitation and settlement notifications
+- Service-worker notification handling
+- Supabase Edge Function delivery
+- Explicit exclusion of surprise notes
+
 ## Deferred ideas
 
-These are intentionally outside the first release:
-
-- Push notifications
 - Photo uploads
 - Calendar integration
 - Location-based suggestions
 - AI recommendations
 - Public sharing
-
-They can be considered later only when they remain free and solve a real need.
