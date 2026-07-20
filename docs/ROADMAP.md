@@ -3,7 +3,8 @@
 - Phase 1 — Complete
 - Phase 2 — Complete
 - Phase 3 — Complete
-- Phase 4 — Next
+- Phase 4 — Complete
+- Phase 5 — Next
 
 # Together — project roadmap
 

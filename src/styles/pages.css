@@ -676,3 +676,223 @@
     padding: 1.5rem;
   }
 }
+
+/* =========================================================
+   SAVED PLACES
+========================================================= */
+.places-search {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 3.2rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  box-shadow: var(--shadow-soft);
+}
+
+.places-search:focus-within {
+  border-color: rgba(141, 63, 91, 0.42);
+  box-shadow: 0 0 0 3px rgba(141, 63, 91, 0.1);
+}
+
+.places-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font-size: 1rem;
+}
+
+.places-search input::placeholder {
+  color: var(--color-muted);
+}
+
+.places-search button {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-surface-soft);
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.place-grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.place-card {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 1rem;
+  padding: 1.1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.place-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0.23rem;
+  background: var(--color-accent);
+}
+
+.place-card--visited::before {
+  background: #748d72;
+}
+
+.place-card__header,
+.place-card__title-row,
+.place-card__actions,
+.place-card__links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.category-badge,
+.visited-label {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.category-badge {
+  min-height: 1.85rem;
+  padding: 0.28rem 0.65rem;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-deep);
+}
+
+.category-badge--coffee {
+  background: #eee4dc;
+  color: #6f4c38;
+}
+
+.category-badge--drinks {
+  background: #e8e4ef;
+  color: #584b70;
+}
+
+.category-badge--dessert {
+  background: #f6e5ec;
+  color: #8a4660;
+}
+
+.category-badge--recreation {
+  background: #e6eee5;
+  color: #496247;
+}
+
+.place-card__body h3 {
+  margin-bottom: 0;
+  font-size: 1.25rem;
+}
+
+.place-card__title-row {
+  align-items: flex-start;
+}
+
+.visited-label {
+  flex: 0 0 auto;
+  padding: 0.24rem 0.55rem;
+  background: #e7eee6;
+  color: #486047;
+}
+
+.place-card__address {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.65rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.place-card__address svg {
+  flex: 0 0 auto;
+  margin-top: 0.12rem;
+  color: var(--color-accent);
+}
+
+.place-card__notes {
+  margin: 0.8rem 0 0;
+  color: var(--color-muted);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.place-card__links {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.external-action {
+  min-height: 2.65rem;
+  padding: 0.58rem 0.8rem;
+  font-size: 0.8rem;
+}
+
+.place-card__actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  padding-top: 0.15rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.field-group input[type='url'],
+.field-group select {
+  width: 100%;
+  min-width: 0;
+  min-height: 3.15rem;
+  padding: 0.78rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--color-ink);
+  font-size: 1rem;
+}
+
+.field-group > small {
+  margin-top: -0.1rem;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.place-form-options {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.place-form-options .favorite-check svg {
+  color: var(--color-accent);
+}
+
+@media (min-width: 42rem) {
+  .place-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .place-form-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

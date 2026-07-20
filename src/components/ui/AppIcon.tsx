@@ -12,7 +12,11 @@ interface AppIconProps {
     | 'edit'
     | 'trash'
     | 'check'
-    | 'undo';
+    | 'undo'
+    | 'search'
+    | 'external-link'
+    | 'map'
+    | 'globe';
   size?: number;
 }
 
@@ -133,6 +137,43 @@ export function AppIcon({ name, size = 22 }: AppIconProps) {
       <svg {...commonProps}>
         <path d="m9 7-5 5 5 5" />
         <path d="M4 12h10a6 6 0 0 1 6 6" />
+      </svg>
+    );
+  }
+
+  if (name === 'search') {
+    return (
+      <svg {...commonProps}>
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-4-4" />
+      </svg>
+    );
+  }
+
+  if (name === 'external-link') {
+    return (
+      <svg {...commonProps}>
+        <path d="M14 4h6v6" />
+        <path d="m20 4-9 9" />
+        <path d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6" />
+      </svg>
+    );
+  }
+
+  if (name === 'map') {
+    return (
+      <svg {...commonProps}>
+        <path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3Z" />
+        <path d="M9 3v15M15 6v15" />
+      </svg>
+    );
+  }
+
+  if (name === 'globe') {
+    return (
+      <svg {...commonProps}>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
       </svg>
     );
   }
