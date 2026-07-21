@@ -175,3 +175,47 @@ self.addEventListener('notificationclick', (event) => {
     })(),
   );
 });
+
+/* =========================================================
+   TOGETHER_BADGE_CLEAR_REFINEMENT
+========================================================= */
+
+/**
+ * Clears the installed PWA badge when supported.
+ */
+async function clearTogetherApplicationBadge() {
+  try {
+    if (typeof self.registration.clearAppBadge === 'function') {
+      await self.registration.clearAppBadge();
+    }
+  } catch {
+    // Badge support is optional and must not interrupt push handling.
+  }
+}
+
+/**
+ * The open application asks the worker to clear its badge whenever it becomes
+ * visible or active.
+ */
+self.addEventListener('message', (event) => {
+  if (event.data?.type !== 'CLEAR_APP_BADGE') {
+    return;
+  }
+
+  event.waitUntil(clearTogetherApplicationBadge());
+});
+
+/**
+ * Clearing a displayed notification should also clear the Home Screen badge.
+ */
+self.addEventListener('notificationclose', (event) => {
+  event.waitUntil(clearTogetherApplicationBadge());
+});
+
+/**
+ * The existing notification-click listener still performs routing. This
+ * additional listener handles only the independent badge state.
+ */
+self.addEventListener('notificationclick', (event) => {
+  event.waitUntil(clearTogetherApplicationBadge());
+});

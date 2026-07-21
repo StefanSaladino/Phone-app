@@ -12,6 +12,7 @@ const pageTitles: Record<string, string> = {
   '/places': 'Saved places',
   '/bets': 'Bets',
   '/notes': 'Little notes',
+  '/settings': 'Settings',
 };
 
 /** Shared authenticated layout containing the top bar, content, and mobile nav. */
@@ -33,6 +34,7 @@ export function AppShell() {
   }
 
   const currentProfile = workspace.currentMember.profile;
+
   const currentFullName = [currentProfile.first_name, currentProfile.last_name]
     .filter(Boolean)
     .join(' ');
@@ -40,11 +42,11 @@ export function AppShell() {
   return (
     <div className="app-shell">
       <TopBar
-        title={pageTitles[pathname] ?? 'Our space'}
-        workspaceName={workspace.couple.name}
         displayName={currentFullName}
         email={user?.email}
         onSignOut={() => void handleSignOut()}
+        title={pageTitles[pathname] ?? 'Our space'}
+        workspaceName={workspace.couple.name}
       />
 
       <NetworkStatusBanner />

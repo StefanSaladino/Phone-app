@@ -8,6 +8,7 @@ interface AppIconProps {
     | 'trophy'
     | 'lock'
     | 'bell'
+    | 'settings'
     | 'plus'
     | 'logout'
     | 'close'
@@ -120,6 +121,16 @@ export function AppIcon({ name, size = 22 }: AppIconProps) {
     );
   }
 
+  if (name === 'settings') {
+    return (
+      <svg {...commonProps}>
+        <circle cx="12" cy="12" r="3" />
+
+        <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.1A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.1A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.1A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.09.37.3.72.6 1 .3.27.69.41 1.1.4h.1v4h-.1a1.7 1.7 0 0 0-1.7.6Z" />
+      </svg>
+    );
+  }
+
   if (name === 'plus') {
     return (
       <svg {...commonProps}>
@@ -214,7 +225,6 @@ export function AppIcon({ name, size = 22 }: AppIconProps) {
       </svg>
     );
   }
-
 
   if (name === 'mail') {
     return (

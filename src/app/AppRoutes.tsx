@@ -9,6 +9,7 @@ import { AppShell } from '../components/layout/AppShell';
  * Route-level dynamic imports keep each major feature out of the initial
  * JavaScript bundle until that page is opened.
  */
+const SettingsPage = lazy(() => import('../pages/SettingsPage'));
 const DashboardPage = lazy(() =>
   import('../pages/DashboardPage').then((module) => ({
     default: module.DashboardPage,
@@ -143,6 +144,7 @@ export function AppRoutes() {
                 </LazyRoute>
               }
             />
+            <Route path="settings" element={<SettingsPage />} />
             <Route
               path="notes"
               element={

@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { NotificationSettingsCard } from '../components/notifications/NotificationSettingsCard';
 import { InstallAppCard } from '../components/pwa/InstallAppCard';
 import { AppIcon } from '../components/ui/AppIcon';
 import { useCouple } from '../hooks/useCouple';
@@ -76,8 +75,6 @@ export function DashboardPage() {
       </section>
 
       <InstallAppCard />
-
-      <NotificationSettingsCard currentUserId={currentMember.user_id} />
 
       <section className="summary-card" aria-label="Shared list summary">
         <div>
