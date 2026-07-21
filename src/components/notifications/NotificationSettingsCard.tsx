@@ -1,11 +1,33 @@
 import { useEffect, useState } from 'react';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
+import { supabase } from '../../lib/supabase';
 import type { NotificationPreferencesValues } from '../../types/notification';
 import { AppIcon } from '../ui/AppIcon';
 
 interface NotificationSettingsCardProps {
   currentUserId: string;
 }
+
+interface ContentNotificationPreferences {
+  new_ideas_enabled: boolean;
+  new_places_enabled: boolean;
+}
+
+interface RpcResponse {
+  data: unknown;
+  error: {
+    message: string;
+  } | null;
+}
+
+interface RpcCapableClient {
+  rpc: (
+    functionName: string,
+    parameters?: Record<string, unknown>,
+  ) => Promise<RpcResponse>;
+}
+
+const notificationClient = supabase as unknown as RpcCapableClient;
 
 const reminderOptions = [
   { value: 30, label: '30 minutes before' },
@@ -21,6 +43,26 @@ function defaultTimezone(): string {
   );
 }
 
+function readContentPreferences(
+  data: unknown,
+): ContentNotificationPreferences {
+  const candidate = Array.isArray(data) ? data[0] : data;
+
+  if (!candidate || typeof candidate !== 'object') {
+    return {
+      new_ideas_enabled: false,
+      new_places_enabled: false,
+    };
+  }
+
+  const row = candidate as Partial<ContentNotificationPreferences>;
+
+  return {
+    new_ideas_enabled: row.new_ideas_enabled === true,
+    new_places_enabled: row.new_places_enabled === true,
+  };
+}
+
 /**
  * User-facing Web Push controls. Permission is requested only from the direct
  * Enable button click, which is required by iPhone and other browsers.
@@ -29,9 +71,21 @@ export function NotificationSettingsCard({
   currentUserId,
 }: NotificationSettingsCardProps) {
   const push = usePushNotifications(currentUserId);
-  const [values, setValues] = useState<NotificationPreferencesValues | null>(
-    null,
-  );
+
+  const [values, setValues] =
+    useState<NotificationPreferencesValues | null>(null);
+
+  const [newIdeasEnabled, setNewIdeasEnabled] = useState(false);
+  const [newPlacesEnabled, setNewPlacesEnabled] = useState(false);
+
+  const [isLoadingContentPreferences, setIsLoadingContentPreferences] =
+    useState(true);
+
+  const [isSavingContentPreferences, setIsSavingContentPreferences] =
+    useState(false);
+
+  const [contentPreferencesError, setContentPreferencesError] = useState('');
+  const [combinedSuccessMessage, setCombinedSuccessMessage] = useState('');
 
   useEffect(() => {
     if (!push.preferences) return;
@@ -47,25 +101,110 @@ export function NotificationSettingsCard({
     });
   }, [push.preferences]);
 
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadContentPreferences(): Promise<void> {
+      setIsLoadingContentPreferences(true);
+      setContentPreferencesError('');
+
+      const { data, error } = await notificationClient.rpc(
+        'get_content_notification_preferences',
+      );
+
+      if (!isActive) {
+        return;
+      }
+
+      if (error) {
+        setContentPreferencesError(
+          'Unable to load idea and place notification preferences.',
+        );
+        setIsLoadingContentPreferences(false);
+        return;
+      }
+
+      const contentPreferences = readContentPreferences(data);
+
+      setNewIdeasEnabled(contentPreferences.new_ideas_enabled);
+      setNewPlacesEnabled(contentPreferences.new_places_enabled);
+      setIsLoadingContentPreferences(false);
+    }
+
+    void loadContentPreferences();
+
+    return () => {
+      isActive = false;
+    };
+  }, [currentUserId]);
+
   const statusLabel = push.enabledOnThisDevice
     ? 'Enabled'
     : push.permission === 'denied'
       ? 'Blocked'
       : 'Off';
 
+  async function handleSavePreferences(): Promise<void> {
+    if (!values) {
+      return;
+    }
+
+    setIsSavingContentPreferences(true);
+    setContentPreferencesError('');
+    setCombinedSuccessMessage('');
+
+    try {
+      await push.savePreferences(values);
+
+      const { error } = await notificationClient.rpc(
+        'set_content_notification_preferences',
+        {
+          p_new_ideas_enabled: newIdeasEnabled,
+          p_new_places_enabled: newPlacesEnabled,
+        },
+      );
+
+      if (error) {
+        setContentPreferencesError(
+          'Your main preferences were saved, but the idea and place alerts could not be updated.',
+        );
+        return;
+      }
+
+      setCombinedSuccessMessage('Notification preferences saved.');
+    } catch {
+      setContentPreferencesError(
+        'Unable to save all notification preferences.',
+      );
+    } finally {
+      setIsSavingContentPreferences(false);
+    }
+  }
+
+  const isSaving =
+    push.busyAction === 'save' || isSavingContentPreferences;
+
   return (
-    <section className="notification-settings-card" aria-labelledby="notification-settings-title">
+    <section
+      className="notification-settings-card"
+      aria-labelledby="notification-settings-title"
+    >
       <header className="notification-settings-card__header">
-        <span className="notification-settings-card__icon" aria-hidden="true">
+        <span
+          className="notification-settings-card__icon"
+          aria-hidden="true"
+        >
           <AppIcon name="bell" size={23} />
         </span>
 
         <div>
           <p className="section-heading__eyebrow">Stay in the loop</p>
+
           <h2 id="notification-settings-title">Notifications</h2>
+
           <p>
-            Get planned-date reminders and bet updates even when Together is
-            closed.
+            Get reminders, bet updates, and alerts when your partner adds a new
+            date idea or saved place.
           </p>
         </div>
 
@@ -79,6 +218,7 @@ export function NotificationSettingsCard({
       {push.availability === 'install-required' ? (
         <div className="notification-help-card">
           <strong>Install Together first</strong>
+
           <p>
             On iPhone or iPad, open the Share menu, choose Add to Home Screen,
             then open Together from its new icon before enabling notifications.
@@ -89,6 +229,7 @@ export function NotificationSettingsCard({
       {push.availability === 'unsupported' ? (
         <div className="notification-help-card">
           <strong>Web Push is unavailable here</strong>
+
           <p>
             Use a current browser with service-worker and notification support.
           </p>
@@ -98,6 +239,7 @@ export function NotificationSettingsCard({
       {push.availability === 'configuration-missing' ? (
         <div className="notification-help-card">
           <strong>Notification setup is not finished</strong>
+
           <p>
             This build is missing its public VAPID key. The app remains fully
             usable without notifications.
@@ -105,8 +247,11 @@ export function NotificationSettingsCard({
         </div>
       ) : null}
 
-      {push.loading ? (
-        <p className="notification-settings-card__loading" aria-live="polite">
+      {push.loading || isLoadingContentPreferences ? (
+        <p
+          className="notification-settings-card__loading"
+          aria-live="polite"
+        >
           Loading notification settings…
         </p>
       ) : values ? (
@@ -118,6 +263,7 @@ export function NotificationSettingsCard({
                   ? 'This device is registered'
                   : 'Enable this device'}
               </strong>
+
               <span>
                 {push.activeDeviceCount === 1
                   ? '1 active device on your account'
@@ -145,6 +291,7 @@ export function NotificationSettingsCard({
                 onClick={() => void push.enable()}
               >
                 <AppIcon name="bell" size={18} />
+
                 {push.busyAction === 'enable'
                   ? 'Enabling…'
                   : 'Enable notifications'}
@@ -158,6 +305,7 @@ export function NotificationSettingsCard({
                 <strong>Planned-date reminders</strong>
                 <small>Remind me before a planned date begins.</small>
               </span>
+
               <input
                 type="checkbox"
                 checked={values.eventRemindersEnabled}
@@ -177,6 +325,7 @@ export function NotificationSettingsCard({
             {values.eventRemindersEnabled ? (
               <label className="notification-field">
                 <span>Reminder timing</span>
+
                 <select
                   value={values.reminderMinutesBefore}
                   onChange={(event) =>
@@ -202,11 +351,13 @@ export function NotificationSettingsCard({
             <label className="notification-toggle">
               <span>
                 <strong>Bet updates</strong>
+
                 <small>
                   Invitations, settlement requests, reveals, and completion
                   updates.
                 </small>
               </span>
+
               <input
                 type="checkbox"
                 checked={values.betUpdatesEnabled}
@@ -225,9 +376,51 @@ export function NotificationSettingsCard({
 
             <label className="notification-toggle">
               <span>
-                <strong>Quiet hours</strong>
-                <small>Hold non-urgent alerts until the quiet period ends.</small>
+                <strong>New date ideas</strong>
+
+                <small>
+                  Notify me when my partner adds an idea to our shared list.
+                </small>
               </span>
+
+              <input
+                type="checkbox"
+                checked={newIdeasEnabled}
+                onChange={(event) => {
+                  setNewIdeasEnabled(event.target.checked);
+                  setCombinedSuccessMessage('');
+                }}
+              />
+            </label>
+
+            <label className="notification-toggle">
+              <span>
+                <strong>New saved places</strong>
+
+                <small>
+                  Notify me when my partner adds a place to our shared map.
+                </small>
+              </span>
+
+              <input
+                type="checkbox"
+                checked={newPlacesEnabled}
+                onChange={(event) => {
+                  setNewPlacesEnabled(event.target.checked);
+                  setCombinedSuccessMessage('');
+                }}
+              />
+            </label>
+
+            <label className="notification-toggle">
+              <span>
+                <strong>Quiet hours</strong>
+
+                <small>
+                  Hold non-urgent alerts until the quiet period ends.
+                </small>
+              </span>
+
               <input
                 type="checkbox"
                 checked={values.quietHoursEnabled}
@@ -248,13 +441,17 @@ export function NotificationSettingsCard({
               <div className="notification-time-grid">
                 <label className="notification-field">
                   <span>Starts</span>
+
                   <input
                     type="time"
                     value={values.quietHoursStart}
                     onChange={(event) =>
                       setValues((current) =>
                         current
-                          ? { ...current, quietHoursStart: event.target.value }
+                          ? {
+                              ...current,
+                              quietHoursStart: event.target.value,
+                            }
                           : current,
                       )
                     }
@@ -263,13 +460,17 @@ export function NotificationSettingsCard({
 
                 <label className="notification-field">
                   <span>Ends</span>
+
                   <input
                     type="time"
                     value={values.quietHoursEnd}
                     onChange={(event) =>
                       setValues((current) =>
                         current
-                          ? { ...current, quietHoursEnd: event.target.value }
+                          ? {
+                              ...current,
+                              quietHoursEnd: event.target.value,
+                            }
                           : current,
                       )
                     }
@@ -287,7 +488,11 @@ export function NotificationSettingsCard({
             <button
               className="secondary-button"
               type="button"
-              disabled={!push.enabledOnThisDevice || push.busyAction !== null}
+              disabled={
+                !push.enabledOnThisDevice ||
+                push.busyAction !== null ||
+                isSavingContentPreferences
+              }
               onClick={() => void push.sendTest()}
             >
               {push.busyAction === 'test' ? 'Queueing…' : 'Send a test'}
@@ -296,10 +501,14 @@ export function NotificationSettingsCard({
             <button
               className="primary-button"
               type="button"
-              disabled={push.busyAction !== null}
-              onClick={() => void push.savePreferences(values)}
+              disabled={
+                push.busyAction !== null ||
+                isSavingContentPreferences ||
+                isLoadingContentPreferences
+              }
+              onClick={() => void handleSavePreferences()}
             >
-              {push.busyAction === 'save' ? 'Saving…' : 'Save preferences'}
+              {isSaving ? 'Saving…' : 'Save preferences'}
             </button>
           </div>
         </div>
@@ -311,7 +520,18 @@ export function NotificationSettingsCard({
         </p>
       ) : null}
 
-      {push.successMessage ? (
+      {contentPreferencesError ? (
+        <p className="form-message form-message--error" role="alert">
+          {contentPreferencesError}
+        </p>
+      ) : null}
+
+      {combinedSuccessMessage ? (
+        <p className="notification-success" role="status">
+          <AppIcon name="check" size={17} />
+          {combinedSuccessMessage}
+        </p>
+      ) : push.successMessage ? (
         <p className="notification-success" role="status">
           <AppIcon name="check" size={17} />
           {push.successMessage}

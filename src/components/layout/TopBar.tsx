@@ -1,3 +1,4 @@
+import { NavLink } from 'react-router-dom';
 import { AppIcon } from '../ui/AppIcon';
 
 interface TopBarProps {
@@ -29,18 +30,30 @@ export function TopBar({
 
       <div className="top-bar__actions">
         <span
-          className="top-bar__avatar"
           aria-label={`Signed in as ${displayName || email || 'user'}`}
+          className="top-bar__avatar"
           title={displayName || email}
         >
           {initial}
         </span>
+
+        <NavLink
+          aria-label="Open settings"
+          className={({ isActive }) =>
+            `icon-button${isActive ? ' is-active' : ''}`
+          }
+          title="Settings"
+          to="/settings"
+        >
+          <AppIcon name="settings" size={20} />
+        </NavLink>
+
         <button
-          className="icon-button"
-          type="button"
-          onClick={onSignOut}
           aria-label="Sign out"
+          className="icon-button"
+          onClick={onSignOut}
           title="Sign out"
+          type="button"
         >
           <AppIcon name="logout" size={20} />
         </button>
