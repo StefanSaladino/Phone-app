@@ -6,7 +6,9 @@
 - Phase 4 — Complete
 - Phase 5 — Complete
 - Phase 6 — Complete
-- Phase 7 — In progress
+- Phase 7 — Complete
+- Phase 8 — Complete
+- Phase 9 — Complete (deployment configuration required)
 
 # Together — project roadmap
 
@@ -112,7 +114,8 @@ Together is a private, installable web app for exactly two people. It is intenti
 - Punishments created privately for the partner
 - Wheel contents hidden from the partner until a selected result is revealed
 - Readiness-only sharing with no partner approval requirement
-- Bet creation with both predictions and settlement conditions
+- Bet creation with visible predictions or a server-protected hidden-answer mode
+- Hidden predictions revealed only after the designated partner submits the real answer
 - Accept, reject, and cancel invitation flows
 - Private wheel snapshots when a bet becomes active
 - Immutable active bet terms and hidden snapshot contents

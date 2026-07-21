@@ -1,8 +1,10 @@
+import { toAppError } from '../lib/appError';
 import { supabase } from '../lib/supabase';
 import type {
   Bet,
   BetSettlement,
   BetValues,
+  HiddenBetState,
   RevealedBetOutcome,
   SettlementProposalValues,
   WheelItem,
@@ -14,7 +16,7 @@ const wheelItemSelect =
   'id, couple_id, created_by, target_user_id, item_type, title, description, status, created_at, updated_at';
 
 const betSelect =
-  'id, couple_id, created_by, opponent_id, title, description, creator_prediction, opponent_prediction, settlement_condition, settlement_due_at, status, accepted_at, rejected_at, cancelled_at, settled_at, created_at, updated_at';
+  'id, couple_id, created_by, opponent_id, bet_type, title, description, creator_prediction, opponent_prediction, settlement_condition, settlement_due_at, status, accepted_at, rejected_at, cancelled_at, settled_at, created_at, updated_at';
 
 interface CreateWheelItemOptions {
   coupleId: string;
@@ -35,22 +37,7 @@ export interface BetWorkspaceData {
   wheelItems: WheelItem[];
   wheelReadiness: WheelReadiness[];
   settlements: BetSettlement[];
-}
-
-/** Converts an unknown Supabase failure into a stable Error instance. */
-function toError(error: unknown, fallbackMessage: string): Error {
-  if (error instanceof Error) return error;
-
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof error.message === 'string'
-  ) {
-    return new Error(error.message);
-  }
-
-  return new Error(fallbackMessage);
+  hiddenBetStates: HiddenBetState[];
 }
 
 /**
@@ -61,8 +48,13 @@ export async function loadBetWorkspace(
   coupleId: string,
   currentUserId: string,
 ): Promise<BetWorkspaceData> {
-  const [betsResult, wheelItemsResult, readinessResult, settlementsResult] =
-    await Promise.all([
+  const [
+    betsResult,
+    wheelItemsResult,
+    readinessResult,
+    settlementsResult,
+    hiddenStatesResult,
+  ] = await Promise.all([
       supabase
         .from('bets')
         .select(betSelect)
@@ -78,16 +70,18 @@ export async function loadBetWorkspace(
         .returns<WheelItem[]>(),
       supabase.rpc('get_wheel_readiness', { p_couple_id: coupleId }),
       supabase.rpc('get_bet_settlements', { p_couple_id: coupleId }),
+      supabase.rpc('get_hidden_bet_states', { p_couple_id: coupleId }),
     ]);
 
   const firstError =
     betsResult.error ??
     wheelItemsResult.error ??
     readinessResult.error ??
-    settlementsResult.error;
+    settlementsResult.error ??
+    hiddenStatesResult.error;
 
   if (firstError) {
-    throw toError(firstError, 'Unable to load the bets workspace.');
+    throw toAppError(firstError, 'Unable to load the bets workspace.');
   }
 
   return {
@@ -98,6 +92,9 @@ export async function loadBetWorkspace(
       : [],
     settlements: Array.isArray(settlementsResult.data)
       ? (settlementsResult.data as BetSettlement[])
+      : [],
+    hiddenBetStates: Array.isArray(hiddenStatesResult.data)
+      ? (hiddenStatesResult.data as HiddenBetState[])
       : [],
   };
 }
@@ -130,7 +127,7 @@ export async function createWheelItem({
     .single<WheelItem>();
 
   if (result.error) {
-    throw toError(result.error, 'Unable to add this private wheel option.');
+    throw toAppError(result.error, 'Unable to add this private wheel option.');
   }
 
   return result.data;
@@ -144,13 +141,13 @@ export async function archiveWheelItem(itemId: string): Promise<WheelItem> {
     .single<WheelItem>();
 
   if (result.error) {
-    throw toError(result.error, 'Unable to archive this wheel option.');
+    throw toAppError(result.error, 'Unable to archive this wheel option.');
   }
 
   return result.data;
 }
 
-/** Sends an immutable bet invitation to the linked partner. */
+/** Sends a standard or server-protected hidden-answer invitation. */
 export async function createBet({
   coupleId,
   currentUserId,
@@ -161,12 +158,34 @@ export async function createBet({
     ? new Date(values.settlementDueAt).toISOString()
     : null;
 
+  if (values.betType === 'hidden_answer') {
+    const result = await supabase
+      .rpc('create_hidden_answer_bet', {
+        p_couple_id: coupleId,
+        p_opponent_id: partnerUserId,
+        p_title: values.title.trim(),
+        p_description: values.description.trim() || null,
+        p_secret_answer: values.hiddenPrediction.trim(),
+        p_settlement_condition: values.settlementCondition.trim(),
+        p_settlement_due_at: settlementDueAt,
+      })
+      .select(betSelect)
+      .single<Bet>();
+
+    if (result.error) {
+      throw toAppError(result.error, 'Unable to send this hidden-answer bet.');
+    }
+
+    return result.data;
+  }
+
   const result = await supabase
     .from('bets')
     .insert({
       couple_id: coupleId,
       created_by: currentUserId,
       opponent_id: partnerUserId,
+      bet_type: 'standard',
       title: values.title.trim(),
       description: values.description.trim() || null,
       creator_prediction: values.creatorPrediction.trim(),
@@ -179,7 +198,26 @@ export async function createBet({
     .single<Bet>();
 
   if (result.error) {
-    throw toError(result.error, 'Unable to send this bet invitation.');
+    throw toAppError(result.error, 'Unable to send this bet invitation.');
+  }
+
+  return result.data;
+}
+
+/** Locks the answerer's response before returning the formerly hidden value. */
+export async function submitHiddenBetAnswer(
+  betId: string,
+  answer: string,
+): Promise<HiddenBetState> {
+  const result = await supabase
+    .rpc('submit_hidden_bet_answer', {
+      p_bet_id: betId,
+      p_submitted_answer: answer.trim(),
+    })
+    .single<HiddenBetState>();
+
+  if (result.error) {
+    throw toAppError(result.error, 'Unable to submit this hidden answer.');
   }
 
   return result.data;
@@ -193,7 +231,7 @@ export async function acceptBet(betId: string): Promise<Bet> {
     .single<Bet>();
 
   if (result.error) {
-    throw toError(result.error, 'Unable to accept this bet.');
+    throw toAppError(result.error, 'Unable to accept this bet.');
   }
 
   return result.data;
@@ -207,7 +245,7 @@ export async function rejectBet(betId: string): Promise<Bet> {
     .single<Bet>();
 
   if (result.error) {
-    throw toError(result.error, 'Unable to reject this bet.');
+    throw toAppError(result.error, 'Unable to reject this bet.');
   }
 
   return result.data;
@@ -221,7 +259,7 @@ export async function cancelBet(betId: string): Promise<Bet> {
     .single<Bet>();
 
   if (result.error) {
-    throw toError(result.error, 'Unable to cancel this invitation.');
+    throw toAppError(result.error, 'Unable to cancel this invitation.');
   }
 
   return result.data;
@@ -239,7 +277,7 @@ export async function proposeBetSettlement(
   });
 
   if (result.error) {
-    throw toError(result.error, 'Unable to propose this bet result.');
+    throw toAppError(result.error, 'Unable to propose this bet result.');
   }
 }
 
@@ -254,7 +292,7 @@ export async function disputeBetSettlement(
   });
 
   if (result.error) {
-    throw toError(result.error, 'Unable to dispute this result.');
+    throw toAppError(result.error, 'Unable to dispute this result.');
   }
 }
 
@@ -268,7 +306,7 @@ export async function confirmBetSettlement(betId: string): Promise<void> {
   });
 
   if (result.error) {
-    throw toError(result.error, 'Unable to confirm this result.');
+    throw toAppError(result.error, 'Unable to confirm this result.');
   }
 }
 
@@ -281,7 +319,7 @@ export async function revealBetOutcome(
     .single<RevealedBetOutcome>();
 
   if (result.error) {
-    throw toError(result.error, 'Unable to reveal this wheel result.');
+    throw toAppError(result.error, 'Unable to reveal this wheel result.');
   }
 
   return result.data;
@@ -294,7 +332,7 @@ export async function requestBetOutcomeCompletion(betId: string): Promise<void> 
   });
 
   if (result.error) {
-    throw toError(result.error, 'Unable to request completion.');
+    throw toAppError(result.error, 'Unable to request completion.');
   }
 }
 
@@ -305,7 +343,7 @@ export async function confirmBetOutcomeCompletion(betId: string): Promise<void> 
   });
 
   if (result.error) {
-    throw toError(result.error, 'Unable to confirm completion.');
+    throw toAppError(result.error, 'Unable to confirm completion.');
   }
 }
 
@@ -316,6 +354,6 @@ export async function waiveBetOutcome(betId: string): Promise<void> {
   });
 
   if (result.error) {
-    throw toError(result.error, 'Unable to waive this result.');
+    throw toAppError(result.error, 'Unable to waive this result.');
   }
 }

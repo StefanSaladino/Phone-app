@@ -1,0 +1,59 @@
+-- =========================================================
+-- PHASE 9: NOTIFICATION WORKER CRON TEMPLATE
+-- =========================================================
+-- Do not run this file until:
+-- 1. send-notifications has been deployed with JWT verification disabled.
+-- 2. CRON_SECRET has been added to the Edge Function secrets.
+-- 3. Both placeholders below have been replaced.
+--
+-- Run once in Supabase SQL Editor after replacing:
+--   https://YOUR_PROJECT_REF.supabase.co
+--   YOUR_HIGH_ENTROPY_CRON_SECRET
+
+create extension if not exists pg_cron with schema pg_catalog;
+create extension if not exists pg_net with schema extensions;
+
+select vault.create_secret(
+  'https://tsopalpmhbfmdsdyncro.supabase.co',
+  'together_project_url'
+);
+
+select vault.create_secret(
+  '++NuwH1eiVqpuV9eJg3Gxet9O5elHIiSbhveOXcvh14=T',
+  'together_notification_cron_secret'
+);
+
+select cron.schedule(
+  'together-send-notifications',
+  '* * * * *',
+  $$
+  select net.http_post(
+    url := (
+      select decrypted_secret
+      from vault.decrypted_secrets
+      where name = 'together_project_url'
+      order by created_at desc
+      limit 1
+    ) || '/functions/v1/send-notifications',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-cron-secret', (
+        select decrypted_secret
+        from vault.decrypted_secrets
+        where name = 'together_notification_cron_secret'
+        order by created_at desc
+        limit 1
+      )
+    ),
+    body := '{}'::jsonb
+  ) as request_id;
+  $$
+);
+
+-- Verification:
+-- select jobid, jobname, schedule, active
+-- from cron.job
+-- where jobname = 'together-send-notifications';
+--
+-- To stop the worker later:
+-- select cron.unschedule('together-send-notifications');

@@ -7,6 +7,7 @@ interface AppIconProps {
     | 'bets'
     | 'trophy'
     | 'lock'
+    | 'bell'
     | 'plus'
     | 'logout'
     | 'close'
@@ -106,6 +107,15 @@ export function AppIcon({ name, size = 22 }: AppIconProps) {
       <svg {...commonProps}>
         <rect x="4.5" y="10" width="15" height="11" rx="2.5" />
         <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" />
+      </svg>
+    );
+  }
+
+  if (name === 'bell') {
+    return (
+      <svg {...commonProps}>
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" />
+        <path d="M10 21h4" />
       </svg>
     );
   }

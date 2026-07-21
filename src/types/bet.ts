@@ -26,6 +26,8 @@ export interface WheelReadiness {
   punishment_ready: boolean;
 }
 
+export type BetType = 'standard' | 'hidden_answer';
+
 export type BetStatus =
   | 'pending'
   | 'active'
@@ -38,10 +40,11 @@ export interface Bet {
   couple_id: string;
   created_by: string;
   opponent_id: string;
+  bet_type: BetType;
   title: string;
   description: string | null;
-  creator_prediction: string;
-  opponent_prediction: string;
+  creator_prediction: string | null;
+  opponent_prediction: string | null;
   settlement_condition: string;
   settlement_due_at: string | null;
   status: BetStatus;
@@ -54,12 +57,33 @@ export interface Bet {
 }
 
 export interface BetValues {
+  betType: BetType;
   title: string;
   description: string;
   creatorPrediction: string;
   opponentPrediction: string;
+  hiddenPrediction: string;
   settlementCondition: string;
   settlementDueAt: string;
+}
+
+export type HiddenBetAnswerStatus = 'awaiting_answer' | 'revealed';
+
+/**
+ * Privacy-safe hidden-answer state returned by get_hidden_bet_states().
+ * Before reveal, the secret is returned only to the person who entered it.
+ */
+export interface HiddenBetState {
+  bet_id: string;
+  secret_owner_id: string;
+  answerer_user_id: string;
+  status: HiddenBetAnswerStatus;
+  secret_answer: string | null;
+  submitted_answer: string | null;
+  exact_match: boolean | null;
+  can_submit_answer: boolean;
+  submitted_at: string | null;
+  revealed_at: string | null;
 }
 
 export interface BetWheelEntry {

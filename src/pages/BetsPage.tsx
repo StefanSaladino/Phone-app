@@ -23,6 +23,7 @@ import {
   rejectBet,
   requestBetOutcomeCompletion,
   revealBetOutcome,
+  submitHiddenBetAnswer,
   waiveBetOutcome,
 } from '../services/betService';
 import type {
@@ -30,6 +31,7 @@ import type {
   BetSettlement,
   BetsPageTab,
   BetValues,
+  HiddenBetState,
   RevealedBetOutcome,
   SettlementProposalValues,
   WheelItem,
@@ -45,6 +47,7 @@ export function BetsPage() {
   const [wheelItems, setWheelItems] = useState<WheelItem[]>([]);
   const [wheelReadiness, setWheelReadiness] = useState<WheelReadiness[]>([]);
   const [settlements, setSettlements] = useState<BetSettlement[]>([]);
+  const [hiddenBetStates, setHiddenBetStates] = useState<HiddenBetState[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -79,6 +82,7 @@ export function BetsPage() {
       setWheelItems(data.wheelItems);
       setWheelReadiness(data.wheelReadiness);
       setSettlements(data.settlements);
+      setHiddenBetStates(data.hiddenBetStates);
     },
     [],
   );
@@ -113,6 +117,11 @@ export function BetsPage() {
   const settlementByBetId = useMemo(
     () => new Map(settlements.map((settlement) => [settlement.bet_id, settlement])),
     [settlements],
+  );
+
+  const hiddenStateByBetId = useMemo(
+    () => new Map(hiddenBetStates.map((state) => [state.bet_id, state])),
+    [hiddenBetStates],
   );
 
   const activeBets = useMemo(
@@ -246,6 +255,7 @@ export function BetsPage() {
         values,
       });
       setBets((current) => [bet, ...current]);
+      await refreshWorkspaceData();
       setBetFormOpen(false);
     } catch (error) {
       setActionError(
@@ -343,6 +353,26 @@ export function BetsPage() {
     }
   };
 
+
+  const saveHiddenAnswer = async (bet: Bet, answer: string) => {
+    setBusyId(bet.id);
+    setActionError(null);
+
+    try {
+      await submitHiddenBetAnswer(bet.id, answer);
+      await refreshWorkspaceData();
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to submit this hidden answer.',
+      );
+      throw error;
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const confirmSettlement = async (bet: Bet) => {
     setBusyId(bet.id);
     setActionError(null);
@@ -434,6 +464,7 @@ export function BetsPage() {
               key={bet.id}
               bet={bet}
               settlement={settlementByBetId.get(bet.id) ?? null}
+              hiddenState={hiddenStateByBetId.get(bet.id) ?? null}
               currentUserId={currentUserId}
               creatorName={getMemberName(bet.created_by)}
               opponentName={getMemberName(bet.opponent_id)}
@@ -448,6 +479,7 @@ export function BetsPage() {
               onCancel={(selected) =>
                 void runInvitationAction(selected, 'cancel')
               }
+              onSubmitHiddenAnswer={saveHiddenAnswer}
               onProposeSettlement={(selected) => {
                 setActionError(null);
                 setSettlementBet(selected);

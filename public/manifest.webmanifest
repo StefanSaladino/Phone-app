@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Together",
   "short_name": "Together",
-  "description": "A private shared space for date ideas, favourite places, and little notes.",
+  "description": "A private shared space for date ideas, favourite places, playful bets, reminders, and little notes.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

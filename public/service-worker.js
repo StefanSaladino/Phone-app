@@ -1,10 +1,13 @@
 /*
- * Small, dependency-free service worker for the Together app.
- * It caches only the application shell and same-origin static assets.
- * Supabase requests remain network-only so private shared data is never
- * silently served from an outdated browser cache.
+ * Dependency-free service worker for Together.
+ *
+ * Responsibilities:
+ * - Cache the same-origin application shell and built static assets.
+ * - Keep Supabase and other cross-origin private data network-only.
+ * - Receive visible Web Push notifications.
+ * - Focus or open the correct application route when a notification is tapped.
  */
-const CACHE_VERSION = 'together-shell-v1';
+const CACHE_VERSION = 'together-shell-v2';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -30,7 +33,11 @@ self.addEventListener('activate', (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE_VERSION).map((key) => caches.delete(key))),
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_VERSION)
+            .map((key) => caches.delete(key)),
+        ),
       )
       .then(() => self.clients.claim()),
   );
@@ -52,8 +59,11 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           if (response.ok) {
             const responseCopy = response.clone();
-            void caches.open(CACHE_VERSION).then((cache) => cache.put('/index.html', responseCopy));
+            void caches
+              .open(CACHE_VERSION)
+              .then((cache) => cache.put('/index.html', responseCopy));
           }
+
           return response;
         })
         .catch(async () => {
@@ -72,9 +82,96 @@ self.addEventListener('fetch', (event) => {
         if (!response.ok || response.type !== 'basic') return response;
 
         const responseCopy = response.clone();
-        void caches.open(CACHE_VERSION).then((cache) => cache.put(request, responseCopy));
+        void caches
+          .open(CACHE_VERSION)
+          .then((cache) => cache.put(request, responseCopy));
+
         return response;
       });
     }),
+  );
+});
+
+/**
+ * Safari requires every received push to produce a visible notification.
+ * The server payload intentionally contains no surprise-note or hidden-wheel
+ * content.
+ */
+self.addEventListener('push', (event) => {
+  let payload = {};
+
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = {
+      title: 'Together',
+      body: event.data?.text() || 'You have a new update.',
+      data: { url: '/' },
+    };
+  }
+
+  const title = payload.title || 'Together';
+  const options = {
+    body: payload.body || 'You have a new update.',
+    icon: payload.icon || '/icons/icon-192.png',
+    badge: payload.badge || '/icons/icon-192.png',
+    tag: payload.tag || 'together-update',
+    renotify: false,
+    data: {
+      url: payload.data?.url || '/',
+      notificationType: payload.data?.notificationType || 'update',
+    },
+  };
+
+  const tasks = [self.registration.showNotification(title, options)];
+
+  if (self.navigator && typeof self.navigator.setAppBadge === 'function') {
+    tasks.push(self.navigator.setAppBadge(1));
+  }
+
+  event.waitUntil(Promise.all(tasks));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const requestedUrl = event.notification.data?.url || '/';
+  const targetUrl = new URL(requestedUrl, self.location.origin);
+
+  // Never allow a notification payload to navigate outside this application.
+  if (targetUrl.origin !== self.location.origin) {
+    targetUrl.href = self.location.origin;
+  }
+
+  event.waitUntil(
+    (async () => {
+      if (
+        self.navigator &&
+        typeof self.navigator.clearAppBadge === 'function'
+      ) {
+        await self.navigator.clearAppBadge();
+      }
+
+      const windows = await self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      });
+
+      for (const windowClient of windows) {
+        if ('focus' in windowClient) {
+          await windowClient.focus();
+
+          if ('navigate' in windowClient) {
+            await windowClient.navigate(targetUrl.href);
+          }
+
+          return;
+        }
+      }
+
+      if (self.clients.openWindow) {
+        await self.clients.openWindow(targetUrl.href);
+      }
+    })(),
   );
 });
