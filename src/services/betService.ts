@@ -1,7 +1,10 @@
 import { supabase } from '../lib/supabase';
 import type {
   Bet,
+  BetSettlement,
   BetValues,
+  RevealedBetOutcome,
+  SettlementProposalValues,
   WheelItem,
   WheelItemValues,
   WheelReadiness,
@@ -11,7 +14,7 @@ const wheelItemSelect =
   'id, couple_id, created_by, target_user_id, item_type, title, description, status, created_at, updated_at';
 
 const betSelect =
-  'id, couple_id, created_by, opponent_id, title, description, creator_prediction, opponent_prediction, settlement_condition, settlement_due_at, status, accepted_at, rejected_at, cancelled_at, created_at, updated_at';
+  'id, couple_id, created_by, opponent_id, title, description, creator_prediction, opponent_prediction, settlement_condition, settlement_due_at, status, accepted_at, rejected_at, cancelled_at, settled_at, created_at, updated_at';
 
 interface CreateWheelItemOptions {
   coupleId: string;
@@ -31,6 +34,7 @@ export interface BetWorkspaceData {
   bets: Bet[];
   wheelItems: WheelItem[];
   wheelReadiness: WheelReadiness[];
+  settlements: BetSettlement[];
 }
 
 /** Converts an unknown Supabase failure into a stable Error instance. */
@@ -50,31 +54,37 @@ function toError(error: unknown, fallbackMessage: string): Error {
 }
 
 /**
- * Loads shared bets, the signed-in user's private wheel entries, and safe
- * readiness booleans for both partners. Wheel contents never cross users.
+ * Loads shared bets, the signed-in user's private wheel entries, safe wheel
+ * readiness booleans, and settlement rows that hide unrevealed option text.
  */
 export async function loadBetWorkspace(
   coupleId: string,
   currentUserId: string,
 ): Promise<BetWorkspaceData> {
-  const [betsResult, wheelItemsResult, readinessResult] = await Promise.all([
-    supabase
-      .from('bets')
-      .select(betSelect)
-      .eq('couple_id', coupleId)
-      .order('created_at', { ascending: false })
-      .returns<Bet[]>(),
-    supabase
-      .from('wheel_items')
-      .select(wheelItemSelect)
-      .eq('couple_id', coupleId)
-      .eq('created_by', currentUserId)
-      .order('created_at', { ascending: false })
-      .returns<WheelItem[]>(),
-    supabase.rpc('get_wheel_readiness', { p_couple_id: coupleId }),
-  ]);
+  const [betsResult, wheelItemsResult, readinessResult, settlementsResult] =
+    await Promise.all([
+      supabase
+        .from('bets')
+        .select(betSelect)
+        .eq('couple_id', coupleId)
+        .order('created_at', { ascending: false })
+        .returns<Bet[]>(),
+      supabase
+        .from('wheel_items')
+        .select(wheelItemSelect)
+        .eq('couple_id', coupleId)
+        .eq('created_by', currentUserId)
+        .order('created_at', { ascending: false })
+        .returns<WheelItem[]>(),
+      supabase.rpc('get_wheel_readiness', { p_couple_id: coupleId }),
+      supabase.rpc('get_bet_settlements', { p_couple_id: coupleId }),
+    ]);
 
-  const firstError = betsResult.error ?? wheelItemsResult.error ?? readinessResult.error;
+  const firstError =
+    betsResult.error ??
+    wheelItemsResult.error ??
+    readinessResult.error ??
+    settlementsResult.error;
 
   if (firstError) {
     throw toError(firstError, 'Unable to load the bets workspace.');
@@ -85,6 +95,9 @@ export async function loadBetWorkspace(
     wheelItems: wheelItemsResult.data ?? [],
     wheelReadiness: Array.isArray(readinessResult.data)
       ? (readinessResult.data as WheelReadiness[])
+      : [],
+    settlements: Array.isArray(settlementsResult.data)
+      ? (settlementsResult.data as BetSettlement[])
       : [],
   };
 }
@@ -212,4 +225,97 @@ export async function cancelBet(betId: string): Promise<Bet> {
   }
 
   return result.data;
+}
+
+/** Proposes a winner or a mutually confirmable draw. */
+export async function proposeBetSettlement(
+  betId: string,
+  values: SettlementProposalValues,
+): Promise<void> {
+  const result = await supabase.rpc('propose_bet_settlement', {
+    p_bet_id: betId,
+    p_winner_user_id: values.winnerUserId,
+    p_note: values.note.trim() || null,
+  });
+
+  if (result.error) {
+    throw toError(result.error, 'Unable to propose this bet result.');
+  }
+}
+
+/** Disputes the partner's proposed result without settling the bet. */
+export async function disputeBetSettlement(
+  betId: string,
+  reason: string,
+): Promise<void> {
+  const result = await supabase.rpc('dispute_bet_settlement', {
+    p_bet_id: betId,
+    p_reason: reason.trim() || null,
+  });
+
+  if (result.error) {
+    throw toError(result.error, 'Unable to dispute this result.');
+  }
+}
+
+/**
+ * Confirms the partner's proposal. The server settles a draw or performs the
+ * 50/50 coin flip and privately chooses the eligible wheel snapshot.
+ */
+export async function confirmBetSettlement(betId: string): Promise<void> {
+  const result = await supabase.rpc('confirm_bet_settlement', {
+    p_bet_id: betId,
+  });
+
+  if (result.error) {
+    throw toError(result.error, 'Unable to confirm this result.');
+  }
+}
+
+/** The designated spinner reveals the already-selected private option. */
+export async function revealBetOutcome(
+  betId: string,
+): Promise<RevealedBetOutcome> {
+  const result = await supabase
+    .rpc('reveal_bet_outcome', { p_bet_id: betId })
+    .single<RevealedBetOutcome>();
+
+  if (result.error) {
+    throw toError(result.error, 'Unable to reveal this wheel result.');
+  }
+
+  return result.data;
+}
+
+/** Requests partner confirmation that the playful outcome is complete. */
+export async function requestBetOutcomeCompletion(betId: string): Promise<void> {
+  const result = await supabase.rpc('request_bet_outcome_completion', {
+    p_bet_id: betId,
+  });
+
+  if (result.error) {
+    throw toError(result.error, 'Unable to request completion.');
+  }
+}
+
+/** Confirms the partner's completion request. */
+export async function confirmBetOutcomeCompletion(betId: string): Promise<void> {
+  const result = await supabase.rpc('confirm_bet_outcome_completion', {
+    p_bet_id: betId,
+  });
+
+  if (result.error) {
+    throw toError(result.error, 'Unable to confirm completion.');
+  }
+}
+
+/** Allows the winner to voluntarily waive a revealed result. */
+export async function waiveBetOutcome(betId: string): Promise<void> {
+  const result = await supabase.rpc('waive_bet_outcome', {
+    p_bet_id: betId,
+  });
+
+  if (result.error) {
+    throw toError(result.error, 'Unable to waive this result.');
+  }
 }

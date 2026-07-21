@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BetCard } from '../components/bets/BetCard';
 import { BetForm } from '../components/bets/BetForm';
 import { BetsTabs } from '../components/bets/BetsTabs';
+import { DisputeSettlementForm } from '../components/bets/DisputeSettlementForm';
+import { SettlementForm } from '../components/bets/SettlementForm';
+import { SettlementRevealModal } from '../components/bets/SettlementRevealModal';
 import { WheelItemCard } from '../components/bets/WheelItemCard';
 import { WheelItemForm } from '../components/bets/WheelItemForm';
 import { AppIcon } from '../components/ui/AppIcon';
@@ -10,44 +13,75 @@ import {
   acceptBet,
   archiveWheelItem,
   cancelBet,
+  confirmBetOutcomeCompletion,
+  confirmBetSettlement,
   createBet,
   createWheelItem,
+  disputeBetSettlement,
   loadBetWorkspace,
+  proposeBetSettlement,
   rejectBet,
+  requestBetOutcomeCompletion,
+  revealBetOutcome,
+  waiveBetOutcome,
 } from '../services/betService';
 import type {
   Bet,
+  BetSettlement,
   BetsPageTab,
   BetValues,
+  RevealedBetOutcome,
+  SettlementProposalValues,
   WheelItem,
   WheelItemValues,
   WheelReadiness,
 } from '../types/bet';
 
-/** Returns the profile first name for a known couple member. */
-function memberName(
-  userId: string,
-  currentUserId: string,
-  currentName: string,
-  partnerName: string,
-): string {
-  return userId === currentUserId ? currentName : partnerName;
-}
-
-/** Coordinates bets and each user's private prize/punishment wheels. */
+/** Coordinates bets, private wheels, and the mutual settlement game. */
 export function BetsPage() {
   const { workspace } = useCouple();
   const [activeTab, setActiveTab] = useState<BetsPageTab>('bets');
   const [bets, setBets] = useState<Bet[]>([]);
   const [wheelItems, setWheelItems] = useState<WheelItem[]>([]);
   const [wheelReadiness, setWheelReadiness] = useState<WheelReadiness[]>([]);
+  const [settlements, setSettlements] = useState<BetSettlement[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [betFormOpen, setBetFormOpen] = useState(false);
   const [wheelFormOpen, setWheelFormOpen] = useState(false);
+  const [settlementBet, setSettlementBet] = useState<Bet | null>(null);
+  const [disputeBet, setDisputeBet] = useState<Bet | null>(null);
+  const [revealBet, setRevealBet] = useState<Bet | null>(null);
+  const [revealOutcome, setRevealOutcome] =
+    useState<RevealedBetOutcome | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [spinning, setSpinning] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  const currentUserId = workspace?.currentMember.user_id ?? '';
+  const partnerUserId = workspace?.partnerMember.user_id ?? '';
+  const currentFirstName = workspace?.currentMember.profile.first_name ?? 'You';
+  const partnerFirstName =
+    workspace?.partnerMember.profile.first_name ?? 'Partner';
+
+  const getMemberName = useCallback(
+    (userId: string | null): string => {
+      if (!userId) return 'No one';
+      return userId === currentUserId ? currentFirstName : partnerFirstName;
+    },
+    [currentFirstName, currentUserId, partnerFirstName],
+  );
+
+  const applyWorkspaceData = useCallback(
+    (data: Awaited<ReturnType<typeof loadBetWorkspace>>) => {
+      setBets(data.bets);
+      setWheelItems(data.wheelItems);
+      setWheelReadiness(data.wheelReadiness);
+      setSettlements(data.settlements);
+    },
+    [],
+  );
 
   const loadWorkspaceData = useCallback(async () => {
     if (!workspace) return;
@@ -60,9 +94,7 @@ export function BetsPage() {
         workspace.couple.id,
         workspace.currentMember.user_id,
       );
-      setBets(data.bets);
-      setWheelItems(data.wheelItems);
-      setWheelReadiness(data.wheelReadiness);
+      applyWorkspaceData(data);
     } catch (error) {
       setLoadError(
         error instanceof Error
@@ -72,16 +104,16 @@ export function BetsPage() {
     } finally {
       setLoading(false);
     }
-  }, [workspace]);
+  }, [applyWorkspaceData, workspace]);
 
   useEffect(() => {
     void loadWorkspaceData();
   }, [loadWorkspaceData]);
 
-  const currentUserId = workspace?.currentMember.user_id ?? '';
-  const partnerUserId = workspace?.partnerMember.user_id ?? '';
-  const currentFirstName = workspace?.currentMember.profile.first_name ?? 'You';
-  const partnerFirstName = workspace?.partnerMember.profile.first_name ?? 'Partner';
+  const settlementByBetId = useMemo(
+    () => new Map(settlements.map((settlement) => [settlement.bet_id, settlement])),
+    [settlements],
+  );
 
   const activeBets = useMemo(
     () => bets.filter((bet) => bet.status === 'active'),
@@ -104,12 +136,32 @@ export function BetsPage() {
     [bets, currentUserId],
   );
 
+  const outcomeInProgress = useMemo(
+    () =>
+      bets.filter((bet) => {
+        if (bet.status !== 'settled') return false;
+        const settlement = settlementByBetId.get(bet.id);
+        return Boolean(
+          settlement &&
+            ['ready_to_reveal', 'revealed', 'completion_requested'].includes(
+              settlement.status,
+            ),
+        );
+      }),
+    [bets, settlementByBetId],
+  );
+
   const betHistory = useMemo(
     () =>
-      bets.filter((bet) =>
-        ['rejected', 'cancelled', 'settled'].includes(bet.status),
-      ),
-    [bets],
+      bets.filter((bet) => {
+        if (['rejected', 'cancelled'].includes(bet.status)) return true;
+        if (bet.status !== 'settled') return false;
+        const settlement = settlementByBetId.get(bet.id);
+        return Boolean(
+          settlement && ['completed', 'waived', 'draw'].includes(settlement.status),
+        );
+      }),
+    [bets, settlementByBetId],
   );
 
   const activeWheelItems = useMemo(
@@ -140,19 +192,18 @@ export function BetsPage() {
   );
   const wheelsReady = currentWheelsReady && partnerWheelsReady;
 
+  const refreshWorkspaceData = async () => {
+    if (!workspace) return null;
+
+    const data = await loadBetWorkspace(workspace.couple.id, currentUserId);
+    applyWorkspaceData(data);
+    return data;
+  };
+
   const replaceBet = (updatedBet: Bet) => {
     setBets((current) =>
       current.map((bet) => (bet.id === updatedBet.id ? updatedBet : bet)),
     );
-  };
-
-  const refreshWorkspaceData = async () => {
-    if (!workspace) return;
-
-    const data = await loadBetWorkspace(workspace.couple.id, currentUserId);
-    setBets(data.bets);
-    setWheelItems(data.wheelItems);
-    setWheelReadiness(data.wheelReadiness);
   };
 
   const saveWheelItem = async (values: WheelItemValues) => {
@@ -168,7 +219,6 @@ export function BetsPage() {
         partnerUserId,
         values,
       });
-
       await refreshWorkspaceData();
       setWheelFormOpen(false);
     } catch (error) {
@@ -195,12 +245,51 @@ export function BetsPage() {
         partnerUserId,
         values,
       });
-
       setBets((current) => [bet, ...current]);
       setBetFormOpen(false);
     } catch (error) {
       setActionError(
         error instanceof Error ? error.message : 'Unable to send this bet.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const saveSettlement = async (values: SettlementProposalValues) => {
+    if (!settlementBet) return;
+
+    setSubmitting(true);
+    setActionError(null);
+
+    try {
+      await proposeBetSettlement(settlementBet.id, values);
+      await refreshWorkspaceData();
+      setSettlementBet(null);
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to propose this result.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const saveDispute = async (reason: string) => {
+    if (!disputeBet) return;
+
+    setSubmitting(true);
+    setActionError(null);
+
+    try {
+      await disputeBetSettlement(disputeBet.id, reason);
+      await refreshWorkspaceData();
+      setDisputeBet(null);
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : 'Unable to dispute this result.',
       );
     } finally {
       setSubmitting(false);
@@ -225,7 +314,7 @@ export function BetsPage() {
     }
   };
 
-  const runBetAction = async (
+  const runInvitationAction = async (
     bet: Bet,
     action: 'accept' | 'reject' | 'cancel',
   ) => {
@@ -254,6 +343,80 @@ export function BetsPage() {
     }
   };
 
+  const confirmSettlement = async (bet: Bet) => {
+    setBusyId(bet.id);
+    setActionError(null);
+
+    try {
+      await confirmBetSettlement(bet.id);
+      const data = await refreshWorkspaceData();
+      const settlement = data?.settlements.find((entry) => entry.bet_id === bet.id);
+
+      if (settlement && settlement.status === 'ready_to_reveal') {
+        setRevealOutcome(null);
+        setRevealBet(bet);
+      }
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : 'Unable to confirm this result.',
+      );
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const runSettlementAction = async (
+    bet: Bet,
+    action: 'request-completion' | 'confirm-completion' | 'waive',
+  ) => {
+    setBusyId(bet.id);
+    setActionError(null);
+
+    try {
+      if (action === 'request-completion') {
+        await requestBetOutcomeCompletion(bet.id);
+      } else if (action === 'confirm-completion') {
+        await confirmBetOutcomeCompletion(bet.id);
+      } else {
+        await waiveBetOutcome(bet.id);
+      }
+
+      await refreshWorkspaceData();
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to update this settlement.',
+      );
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const spinWheel = async () => {
+    if (!revealBet) return;
+
+    setSpinning(true);
+    setActionError(null);
+
+    try {
+      const outcome = await revealBetOutcome(revealBet.id);
+
+      // Keep the server result hidden while the visual wheel completes a spin.
+      await new Promise((resolve) => window.setTimeout(resolve, 1800));
+      setRevealOutcome(outcome);
+      await refreshWorkspaceData();
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to reveal this wheel result.',
+      );
+    } finally {
+      setSpinning(false);
+    }
+  };
+
   if (!workspace) return null;
 
   const renderBetList = (items: Bet[], label: string) => {
@@ -270,29 +433,56 @@ export function BetsPage() {
             <BetCard
               key={bet.id}
               bet={bet}
+              settlement={settlementByBetId.get(bet.id) ?? null}
               currentUserId={currentUserId}
-              creatorName={memberName(
-                bet.created_by,
-                currentUserId,
-                currentFirstName,
-                partnerFirstName,
-              )}
-              opponentName={memberName(
-                bet.opponent_id,
-                currentUserId,
-                currentFirstName,
-                partnerFirstName,
-              )}
+              creatorName={getMemberName(bet.created_by)}
+              opponentName={getMemberName(bet.opponent_id)}
+              memberName={getMemberName}
               busy={busyId === bet.id}
-              onAccept={(selected) => void runBetAction(selected, 'accept')}
-              onReject={(selected) => void runBetAction(selected, 'reject')}
-              onCancel={(selected) => void runBetAction(selected, 'cancel')}
+              onAccept={(selected) =>
+                void runInvitationAction(selected, 'accept')
+              }
+              onReject={(selected) =>
+                void runInvitationAction(selected, 'reject')
+              }
+              onCancel={(selected) =>
+                void runInvitationAction(selected, 'cancel')
+              }
+              onProposeSettlement={(selected) => {
+                setActionError(null);
+                setSettlementBet(selected);
+              }}
+              onConfirmSettlement={(selected) =>
+                void confirmSettlement(selected)
+              }
+              onDisputeSettlement={(selected) => {
+                setActionError(null);
+                setDisputeBet(selected);
+              }}
+              onOpenReveal={(selected) => {
+                setActionError(null);
+                setRevealOutcome(null);
+                setRevealBet(selected);
+              }}
+              onRequestCompletion={(selected) =>
+                void runSettlementAction(selected, 'request-completion')
+              }
+              onConfirmCompletion={(selected) =>
+                void runSettlementAction(selected, 'confirm-completion')
+              }
+              onWaive={(selected) =>
+                void runSettlementAction(selected, 'waive')
+              }
             />
           ))}
         </div>
       </section>
     );
   };
+
+  const activeRevealSettlement = revealBet
+    ? settlementByBetId.get(revealBet.id) ?? null
+    : null;
 
   return (
     <div className="page-stack">
@@ -318,7 +508,12 @@ export function BetsPage() {
 
       <BetsTabs
         activeTab={activeTab}
-        betCount={activeBets.length + awaitingYou.length + sentInvitations.length}
+        betCount={
+          activeBets.length +
+          awaitingYou.length +
+          sentInvitations.length +
+          outcomeInProgress.length
+        }
         wheelCount={activeWheelItems.length}
         onChange={(tab) => {
           setActionError(null);
@@ -389,6 +584,7 @@ export function BetsPage() {
 
           {renderBetList(awaitingYou, 'Awaiting you')}
           {renderBetList(activeBets, 'Active bets')}
+          {renderBetList(outcomeInProgress, 'Outcome in progress')}
           {renderBetList(sentInvitations, 'Sent invitations')}
           {renderBetList(betHistory, 'History')}
 
@@ -438,7 +634,9 @@ export function BetsPage() {
             </div>
             <div className={partnerReadiness?.prize_ready ? 'is-ready' : ''}>
               <span>{partnerFirstName}&apos;s prize wheel</span>
-              <strong>{partnerReadiness?.prize_ready ? 'Ready' : 'Not ready'}</strong>
+              <strong>
+                {partnerReadiness?.prize_ready ? 'Ready' : 'Not ready'}
+              </strong>
             </div>
             <div className={partnerReadiness?.punishment_ready ? 'is-ready' : ''}>
               <span>{partnerFirstName}&apos;s punishment wheel</span>
@@ -516,6 +714,56 @@ export function BetsPage() {
             setActionError(null);
           }}
           onSubmit={saveWheelItem}
+        />
+      ) : null}
+
+      {settlementBet ? (
+        <SettlementForm
+          bet={settlementBet}
+          settlement={settlementByBetId.get(settlementBet.id) ?? null}
+          currentUserId={currentUserId}
+          currentFirstName={currentFirstName}
+          partnerFirstName={partnerFirstName}
+          submitting={submitting}
+          serverError={actionError}
+          onCancel={() => {
+            if (submitting) return;
+            setSettlementBet(null);
+            setActionError(null);
+          }}
+          onSubmit={saveSettlement}
+        />
+      ) : null}
+
+      {disputeBet ? (
+        <DisputeSettlementForm
+          bet={disputeBet}
+          submitting={submitting}
+          serverError={actionError}
+          onCancel={() => {
+            if (submitting) return;
+            setDisputeBet(null);
+            setActionError(null);
+          }}
+          onSubmit={saveDispute}
+        />
+      ) : null}
+
+      {revealBet && activeRevealSettlement ? (
+        <SettlementRevealModal
+          settlement={activeRevealSettlement}
+          currentUserId={currentUserId}
+          winnerName={getMemberName(activeRevealSettlement.winner_user_id)}
+          loserName={getMemberName(activeRevealSettlement.loser_user_id)}
+          spinnerName={getMemberName(activeRevealSettlement.spinner_user_id)}
+          spinning={spinning}
+          outcome={revealOutcome}
+          onSpin={spinWheel}
+          onClose={() => {
+            if (spinning) return;
+            setRevealBet(null);
+            setRevealOutcome(null);
+          }}
         />
       ) : null}
     </div>
