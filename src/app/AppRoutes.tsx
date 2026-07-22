@@ -28,6 +28,8 @@ const PlacesPage = lazy(() =>
   })),
 );
 
+const RecipesPage = lazy(() => import('../pages/RecipesPage'));
+
 const BetsPage = lazy(() =>
   import('../pages/BetsPage').then((module) => ({
     default: module.BetsPage,
@@ -133,6 +135,14 @@ export function AppRoutes() {
               element={
                 <LazyRoute>
                   <PlacesPage />
+                </LazyRoute>
+              }
+            />
+            <Route
+              path="recipes"
+              element={
+                <LazyRoute>
+                  <RecipesPage />
                 </LazyRoute>
               }
             />

@@ -24,6 +24,7 @@ import {
   requestBetOutcomeCompletion,
   revealBetOutcome,
   submitHiddenBetAnswer,
+  updateWheelItem,
   waiveBetOutcome,
 } from '../services/betService';
 import type {
@@ -53,6 +54,7 @@ export function BetsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [betFormOpen, setBetFormOpen] = useState(false);
   const [wheelFormOpen, setWheelFormOpen] = useState(false);
+  const [editingWheelItem, setEditingWheelItem] = useState<WheelItem | null>(null);
   const [settlementBet, setSettlementBet] = useState<Bet | null>(null);
   const [disputeBet, setDisputeBet] = useState<Bet | null>(null);
   const [revealBet, setRevealBet] = useState<Bet | null>(null);
@@ -222,19 +224,30 @@ export function BetsPage() {
     setActionError(null);
 
     try {
-      await createWheelItem({
-        coupleId: workspace.couple.id,
-        currentUserId,
-        partnerUserId,
-        values,
-      });
+      if (editingWheelItem) {
+        await updateWheelItem({
+          coupleId: workspace.couple.id,
+          currentUserId,
+          itemId: editingWheelItem.id,
+          values,
+        });
+      } else {
+        await createWheelItem({
+          coupleId: workspace.couple.id,
+          currentUserId,
+          partnerUserId,
+          values,
+        });
+      }
+
       await refreshWorkspaceData();
       setWheelFormOpen(false);
+      setEditingWheelItem(null);
     } catch (error) {
       setActionError(
         error instanceof Error
           ? error.message
-          : 'Unable to add this private wheel option.',
+          : 'Unable to save this private wheel option.',
       );
     } finally {
       setSubmitting(false);
@@ -530,7 +543,10 @@ export function BetsPage() {
           onClick={() => {
             setActionError(null);
             if (activeTab === 'bets') setBetFormOpen(true);
-            else setWheelFormOpen(true);
+            else {
+              setEditingWheelItem(null);
+              setWheelFormOpen(true);
+            }
           }}
         >
           <AppIcon name="plus" size={18} />
@@ -692,6 +708,11 @@ export function BetsPage() {
                     currentFirstName={currentFirstName}
                     partnerFirstName={partnerFirstName}
                     busy={busyId === item.id}
+                    onEdit={(selected) => {
+                      setActionError(null);
+                      setEditingWheelItem(selected);
+                      setWheelFormOpen(true);
+                    }}
                     onArchive={(selected) => void archivePrivateItem(selected)}
                   />
                 ))}
@@ -710,7 +731,10 @@ export function BetsPage() {
               <button
                 className="primary-button empty-state__button"
                 type="button"
-                onClick={() => setWheelFormOpen(true)}
+                onClick={() => {
+                  setEditingWheelItem(null);
+                  setWheelFormOpen(true);
+                }}
               >
                 <AppIcon name="plus" size={18} />
                 Add the first secret option
@@ -737,12 +761,14 @@ export function BetsPage() {
 
       {wheelFormOpen ? (
         <WheelItemForm
+          item={editingWheelItem}
           partnerFirstName={partnerFirstName}
           submitting={submitting}
           serverError={actionError}
           onCancel={() => {
             if (submitting) return;
             setWheelFormOpen(false);
+            setEditingWheelItem(null);
             setActionError(null);
           }}
           onSubmit={saveWheelItem}

@@ -17,6 +17,12 @@ const quickActions = [
     detail: 'Food, coffee, drinks, dessert, or fun.',
   },
   {
+    to: '/recipes',
+    icon: 'recipes' as const,
+    label: 'Save a recipe',
+    detail: 'Remember what to try and when you made it.',
+  },
+  {
     to: '/bets',
     icon: 'bets' as const,
     label: 'Make a bet',

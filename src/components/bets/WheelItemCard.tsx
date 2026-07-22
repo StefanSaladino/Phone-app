@@ -6,6 +6,7 @@ interface WheelItemCardProps {
   currentFirstName: string;
   partnerFirstName: string;
   busy: boolean;
+  onEdit: (item: WheelItem) => void;
   onArchive: (item: WheelItem) => void;
 }
 
@@ -15,6 +16,7 @@ export function WheelItemCard({
   currentFirstName,
   partnerFirstName,
   busy,
+  onEdit,
   onArchive,
 }: WheelItemCardProps) {
   const targetName =
@@ -58,8 +60,19 @@ export function WheelItemCard({
           className="text-button"
           type="button"
           disabled={busy}
+          onClick={() => onEdit(item)}
+        >
+          <AppIcon name="edit" size={17} />
+          Edit
+        </button>
+
+        <button
+          className="text-button text-button--danger"
+          type="button"
+          disabled={busy}
           onClick={() => onArchive(item)}
         >
+          <AppIcon name="trash" size={17} />
           Archive
         </button>
       </footer>

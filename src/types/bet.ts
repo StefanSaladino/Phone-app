@@ -20,6 +20,11 @@ export interface WheelItemValues {
   description: string;
 }
 
+export interface WheelItemUpdateValues {
+  title: string;
+  description: string;
+}
+
 export interface WheelReadiness {
   user_id: string;
   prize_ready: boolean;

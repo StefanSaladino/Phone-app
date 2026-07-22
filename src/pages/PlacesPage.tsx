@@ -12,7 +12,13 @@ import {
   patchPlace,
   updatePlace,
 } from '../services/placeService';
-import type { Place, PlaceFilter, PlaceValues } from '../types/place';
+import {
+  ALL_CITIES_FILTER,
+  UNKNOWN_CITY_FILTER,
+  type Place,
+  type PlaceFilter,
+  type PlaceValues,
+} from '../types/place';
 
 /**
  * Keeps favourites first, unvisited places next, then recently changed places.
@@ -38,6 +44,7 @@ export function PlacesPage() {
   const { workspace, refreshWorkspace } = useCouple();
   const [places, setPlaces] = useState<Place[]>([]);
   const [filter, setFilter] = useState<PlaceFilter>('all');
+  const [cityFilter, setCityFilter] = useState(ALL_CITIES_FILTER);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -84,6 +91,45 @@ export function PlacesPage() {
     [places],
   );
 
+  const cityOptions = useMemo(() => {
+    const citiesByNormalizedName = new Map<string, string>();
+
+    for (const place of places) {
+      const city = place.city?.trim();
+      if (!city) continue;
+
+      const normalizedCity = city.toLocaleLowerCase();
+      if (!citiesByNormalizedName.has(normalizedCity)) {
+        citiesByNormalizedName.set(normalizedCity, city);
+      }
+    }
+
+    return [...citiesByNormalizedName.values()].sort((first, second) =>
+      first.localeCompare(second, undefined, { sensitivity: 'base' }),
+    );
+  }, [places]);
+
+  const unknownCityCount = useMemo(
+    () => places.filter((place) => !place.city?.trim()).length,
+    [places],
+  );
+
+  useEffect(() => {
+    if (
+      cityFilter === ALL_CITIES_FILTER ||
+      (cityFilter === UNKNOWN_CITY_FILTER && unknownCityCount > 0) ||
+      cityOptions.some(
+        (city) =>
+          city.localeCompare(cityFilter, undefined, { sensitivity: 'base' }) ===
+          0,
+      )
+    ) {
+      return;
+    }
+
+    setCityFilter(ALL_CITIES_FILTER);
+  }, [cityFilter, cityOptions, unknownCityCount]);
+
   const visiblePlaces = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
@@ -95,14 +141,24 @@ export function PlacesPage() {
         (filter === 'visited' && place.visited) ||
         place.category === filter;
 
-      if (!matchesFilter) return false;
+      const matchesCity =
+        cityFilter === ALL_CITIES_FILTER ||
+        (cityFilter === UNKNOWN_CITY_FILTER && !place.city?.trim()) ||
+        Boolean(
+          place.city &&
+            place.city.localeCompare(cityFilter, undefined, {
+              sensitivity: 'base',
+            }) === 0,
+        );
+
+      if (!matchesFilter || !matchesCity) return false;
       if (!normalizedQuery) return true;
 
-      return [place.name, place.address, place.notes, place.category]
+      return [place.name, place.city, place.address, place.notes, place.category]
         .filter(Boolean)
         .some((value) => value?.toLowerCase().includes(normalizedQuery));
     });
-  }, [filter, places, searchQuery]);
+  }, [cityFilter, filter, places, searchQuery]);
 
   const closeForm = () => {
     if (submitting) return;
@@ -233,7 +289,15 @@ export function PlacesPage() {
         ) : null}
       </label>
 
-      <PlaceFilters activeFilter={filter} counts={counts} onChange={setFilter} />
+      <PlaceFilters
+        activeFilter={filter}
+        activeCityFilter={cityFilter}
+        cities={cityOptions}
+        counts={counts}
+        unknownCityCount={unknownCityCount}
+        onChange={setFilter}
+        onCityChange={setCityFilter}
+      />
 
       {loadError ? (
         <section className="inline-error" role="alert">
@@ -280,7 +344,7 @@ export function PlacesPage() {
           <p>
             {places.length === 0
               ? 'Save a restaurant, café, bar, dessert stop, or activity you both want to remember.'
-              : 'Try a different category or clear the search.'}
+              : 'Try a different category or location, or clear the search.'}
           </p>
           {places.length === 0 ? (
             <button className="primary-button empty-state__button" type="button" onClick={openCreateForm}>

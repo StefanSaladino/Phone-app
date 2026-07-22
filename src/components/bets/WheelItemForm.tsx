@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react';
-import type { WheelItemType, WheelItemValues } from '../../types/bet';
+import type {
+  WheelItem,
+  WheelItemType,
+  WheelItemValues,
+} from '../../types/bet';
 import { AppIcon } from '../ui/AppIcon';
 
 interface WheelItemFormProps {
+  item: WheelItem | null;
   partnerFirstName: string;
   submitting: boolean;
   serverError: string | null;
@@ -16,8 +21,9 @@ const emptyValues: WheelItemValues = {
   description: '',
 };
 
-/** Form for a private self-prize or private punishment for the partner. */
+/** Creates a private wheel item or edits wording on an item owned by the user. */
 export function WheelItemForm({
+  item,
   partnerFirstName,
   submitting,
   serverError,
@@ -28,9 +34,17 @@ export function WheelItemForm({
   const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
-    setValues(emptyValues);
+    setValues(
+      item
+        ? {
+            itemType: item.item_type,
+            title: item.title,
+            description: item.description ?? '',
+          }
+        : emptyValues,
+    );
     setValidationError(null);
-  }, []);
+  }, [item]);
 
   const setItemType = (itemType: WheelItemType) => {
     setValues((current) => ({ ...current, itemType }));
@@ -38,6 +52,7 @@ export function WheelItemForm({
 
   const submitForm = async () => {
     const title = values.title.trim();
+    const description = values.description.trim();
 
     if (!title) {
       setValidationError('Give this wheel option a title.');
@@ -49,8 +64,13 @@ export function WheelItemForm({
       return;
     }
 
+    if (description.length > 600) {
+      setValidationError('Keep the details to 600 characters or fewer.');
+      return;
+    }
+
     setValidationError(null);
-    await onSubmit({ ...values, title });
+    await onSubmit({ ...values, title, description });
   };
 
   return (
@@ -69,13 +89,16 @@ export function WheelItemForm({
         <header className="idea-form-card__header">
           <div>
             <p className="section-heading__eyebrow">Your private wheels</p>
-            <h2 id="wheel-item-form-title">Add a secret option</h2>
+            <h2 id="wheel-item-form-title">
+              {item ? 'Edit secret option' : 'Add a secret option'}
+            </h2>
           </div>
 
           <button
             className="icon-button"
             type="button"
             onClick={onCancel}
+            disabled={submitting}
             aria-label="Close form"
           >
             <AppIcon name="close" size={19} />
@@ -83,40 +106,65 @@ export function WheelItemForm({
         </header>
 
         <div className="form-stack">
-          <fieldset className="field-group field-group--fieldset">
-            <legend>What are you adding?</legend>
-            <div className="wheel-type-options">
-              <button
-                className={values.itemType === 'prize' ? 'is-active' : ''}
-                type="button"
-                aria-pressed={values.itemType === 'prize'}
-                onClick={() => setItemType('prize')}
-              >
-                <AppIcon name="trophy" size={21} />
-                <span>
-                  <strong>Prize for me</strong>
-                  <small>You could receive this if you win.</small>
-                </span>
-              </button>
-
-              <button
-                className={values.itemType === 'punishment' ? 'is-active' : ''}
-                type="button"
-                aria-pressed={values.itemType === 'punishment'}
-                onClick={() => setItemType('punishment')}
-              >
-                <AppIcon name="bets" size={21} />
-                <span>
-                  <strong>Punishment for {partnerFirstName}</strong>
-                  <small>This could be revealed if {partnerFirstName} loses.</small>
-                </span>
-              </button>
+          {item ? (
+            <div className="wheel-edit-kind">
+              <AppIcon
+                name={item.item_type === 'prize' ? 'trophy' : 'bets'}
+                size={20}
+              />
+              <span>
+                <strong>
+                  {item.item_type === 'prize'
+                    ? 'Prize for me'
+                    : `Punishment for ${partnerFirstName}`}
+                </strong>
+                <small>
+                  The wheel type and recipient stay fixed while you edit the
+                  private wording.
+                </small>
+              </span>
             </div>
-          </fieldset>
+          ) : (
+            <fieldset className="field-group field-group--fieldset">
+              <legend>What are you adding?</legend>
+              <div className="wheel-type-options">
+                <button
+                  className={values.itemType === 'prize' ? 'is-active' : ''}
+                  type="button"
+                  aria-pressed={values.itemType === 'prize'}
+                  onClick={() => setItemType('prize')}
+                >
+                  <AppIcon name="trophy" size={21} />
+                  <span>
+                    <strong>Prize for me</strong>
+                    <small>You could receive this if you win.</small>
+                  </span>
+                </button>
+
+                <button
+                  className={
+                    values.itemType === 'punishment' ? 'is-active' : ''
+                  }
+                  type="button"
+                  aria-pressed={values.itemType === 'punishment'}
+                  onClick={() => setItemType('punishment')}
+                >
+                  <AppIcon name="bets" size={21} />
+                  <span>
+                    <strong>Punishment for {partnerFirstName}</strong>
+                    <small>
+                      This could be revealed if {partnerFirstName} loses.
+                    </small>
+                  </span>
+                </button>
+              </div>
+            </fieldset>
+          )}
 
           <label className="field-group">
             <span>Option</span>
             <input
+              autoFocus
               type="text"
               maxLength={120}
               value={values.title}
@@ -156,7 +204,8 @@ export function WheelItemForm({
             <AppIcon name="lock" size={17} />
             <span>
               Only you can see this option. Your partner sees it only if the
-              settlement wheel selects it. Any revealed result remains playful and voluntary.
+              settlement wheel selects it. Any revealed result remains playful
+              and voluntary.
             </span>
           </p>
 
@@ -182,7 +231,13 @@ export function WheelItemForm({
             onClick={() => void submitForm()}
             disabled={submitting}
           >
-            {submitting ? 'Adding…' : 'Add secretly'}
+            {submitting
+              ? item
+                ? 'Saving…'
+                : 'Adding…'
+              : item
+                ? 'Save changes'
+                : 'Add secretly'}
           </button>
         </footer>
       </section>

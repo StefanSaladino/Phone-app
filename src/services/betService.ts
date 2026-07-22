@@ -8,6 +8,7 @@ import type {
   RevealedBetOutcome,
   SettlementProposalValues,
   WheelItem,
+  WheelItemUpdateValues,
   WheelItemValues,
   WheelReadiness,
 } from '../types/bet';
@@ -30,6 +31,13 @@ interface CreateBetOptions {
   currentUserId: string;
   partnerUserId: string;
   values: BetValues;
+}
+
+interface UpdateWheelItemOptions {
+  coupleId: string;
+  currentUserId: string;
+  itemId: string;
+  values: WheelItemUpdateValues;
 }
 
 export interface BetWorkspaceData {
@@ -128,6 +136,36 @@ export async function createWheelItem({
 
   if (result.error) {
     throw toAppError(result.error, 'Unable to add this private wheel option.');
+  }
+
+  return result.data;
+}
+
+/**
+ * Updates an active private wheel item without changing its owner, target, or
+ * type. The creator-only RLS policy is the final ownership check.
+ */
+export async function updateWheelItem({
+  coupleId,
+  currentUserId,
+  itemId,
+  values,
+}: UpdateWheelItemOptions): Promise<WheelItem> {
+  const result = await supabase
+    .from('wheel_items')
+    .update({
+      title: values.title.trim(),
+      description: values.description.trim() || null,
+    })
+    .eq('id', itemId)
+    .eq('couple_id', coupleId)
+    .eq('created_by', currentUserId)
+    .eq('status', 'active')
+    .select(wheelItemSelect)
+    .single<WheelItem>();
+
+  if (result.error) {
+    throw toAppError(result.error, 'Unable to update this private wheel option.');
   }
 
   return result.data;

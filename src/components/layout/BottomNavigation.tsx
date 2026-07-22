@@ -5,6 +5,7 @@ const navigationItems = [
   { to: '/', label: 'Home', icon: 'home' as const, end: true },
   { to: '/ideas', label: 'Ideas', icon: 'ideas' as const },
   { to: '/places', label: 'Places', icon: 'places' as const },
+  { to: '/recipes', label: 'Recipes', icon: 'recipes' as const },
   { to: '/bets', label: 'Bets', icon: 'bets' as const },
   { to: '/notes', label: 'Notes', icon: 'notes' as const },
 ];

@@ -9,6 +9,7 @@ export interface Place {
   created_by: string;
   name: string;
   category: PlaceCategory;
+  city: string | null;
   address: string | null;
   website_url: string | null;
   maps_url: string | null;
@@ -22,6 +23,7 @@ export interface Place {
 export interface PlaceValues {
   name: string;
   category: PlaceCategory;
+  city: string;
   address: string;
   websiteUrl: string;
   mapsUrl: string;
@@ -36,3 +38,6 @@ export type PlaceFilter =
   | 'favorites'
   | 'want-to-go'
   | 'visited';
+
+export const ALL_CITIES_FILTER = '__all_cities__';
+export const UNKNOWN_CITY_FILTER = '__unknown_city__';

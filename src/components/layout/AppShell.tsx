@@ -10,6 +10,7 @@ const pageTitles: Record<string, string> = {
   '/': 'Our space',
   '/ideas': 'Date ideas',
   '/places': 'Saved places',
+  '/recipes': 'Recipes',
   '/bets': 'Bets',
   '/notes': 'Little notes',
   '/settings': 'Settings',

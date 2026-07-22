@@ -3,6 +3,7 @@ interface AppIconProps {
     | 'home'
     | 'ideas'
     | 'places'
+    | 'recipes'
     | 'notes'
     | 'bets'
     | 'trophy'
@@ -69,6 +70,15 @@ export function AppIcon({ name, size = 22 }: AppIconProps) {
       <svg {...commonProps}>
         <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" />
         <circle cx="12" cy="10" r="2.5" />
+      </svg>
+    );
+  }
+
+  if (name === 'recipes') {
+    return (
+      <svg {...commonProps}>
+        <path d="M6 3v7a3 3 0 0 0 3 3V3M6 7h3M7.5 13v8" />
+        <path d="M16 3v18M16 3c3 1 4 3 4 6v3h-4" />
       </svg>
     );
   }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { inferCityFromAddress } from '../../lib/placeCity';
 import { normalizeExternalUrl, normalizeGoogleMapsUrl } from '../../lib/placeLinks';
 import type { Place, PlaceCategory, PlaceValues } from '../../types/place';
 import { AppIcon } from '../ui/AppIcon';
@@ -14,6 +15,7 @@ interface PlaceFormProps {
 const emptyValues: PlaceValues = {
   name: '',
   category: 'food',
+  city: '',
   address: '',
   websiteUrl: '',
   mapsUrl: '',
@@ -55,6 +57,7 @@ export function PlaceForm({
         ? {
             name: place.name,
             category: place.category,
+            city: place.city ?? '',
             address: place.address ?? '',
             websiteUrl: place.website_url ?? '',
             mapsUrl: place.maps_url ?? '',
@@ -90,6 +93,7 @@ export function PlaceForm({
 
   const submitForm = async () => {
     const name = values.name.trim();
+    const city = values.city.trim() || inferCityFromAddress(values.address) || '';
 
     if (!name) {
       setValidationError('Give the place a name first.');
@@ -98,6 +102,16 @@ export function PlaceForm({
 
     if (name.length > 140) {
       setValidationError('Keep the place name to 140 characters or fewer.');
+      return;
+    }
+
+    if (!city) {
+      setValidationError('Add the city so this place can be filtered by location.');
+      return;
+    }
+
+    if (city.length > 120) {
+      setValidationError('Keep the city to 120 characters or fewer.');
       return;
     }
 
@@ -110,7 +124,7 @@ export function PlaceForm({
     }
 
     setValidationError(null);
-    await onSubmit({ ...values, name });
+    await onSubmit({ ...values, name, city });
   };
 
   return (
@@ -152,11 +166,11 @@ export function PlaceForm({
           </button>
         </header>
 
-        <div className="place-form-card__body">
-          <div className="form-stack">
+        <div className="form-stack">
             <label className="field-group">
               <span>Place name</span>
               <input
+                autoFocus
                 type="text"
                 maxLength={140}
                 value={values.name}
@@ -187,6 +201,22 @@ export function PlaceForm({
             </label>
 
             <label className="field-group">
+              <span>City</span>
+              <input
+                type="text"
+                maxLength={120}
+                value={values.city}
+                placeholder="Toronto"
+                onChange={(event) =>
+                  setValues((current) => ({ ...current, city: event.target.value }))
+                }
+              />
+              <small>
+                Used by the location filter. We will try to fill it from the address when possible.
+              </small>
+            </label>
+
+            <label className="field-group">
               <span>Address <small>optional</small></span>
               <input
                 type="text"
@@ -196,6 +226,14 @@ export function PlaceForm({
                 onChange={(event) =>
                   setValues((current) => ({ ...current, address: event.target.value }))
                 }
+                onBlur={() => {
+                  setValues((current) => {
+                    if (current.city.trim()) return current;
+
+                    const inferredCity = inferCityFromAddress(current.address);
+                    return inferredCity ? { ...current, city: inferredCity } : current;
+                  });
+                }}
               />
               <small>Used to create a Google Maps search when no share link is pasted.</small>
             </label>
@@ -271,7 +309,6 @@ export function PlaceForm({
                 {validationError ?? serverError}
               </p>
             ) : null}
-          </div>
         </div>
 
         <footer className="idea-form-card__actions place-form-card__actions">
