@@ -1,6 +1,6 @@
 -- =========================================================
 -- PHASE 10
--- Shared recipes, owner-only private-wheel editing, and place cities
+-- Shared recipes, owner-only private-wheel editing, and place locations
 --
 -- This is the only Phase 10 migration. The earlier draft migration 0012 was
 -- never run and is intentionally replaced by this file.
@@ -130,38 +130,42 @@ grant update (title, description)
   to authenticated;
 
 -- =========================================================
--- PLACE CITIES
+-- PLACE LOCATIONS
 -- =========================================================
 
 alter table public.places
-  add column if not exists city text;
+  add column if not exists location text;
 
--- Existing rows intentionally remain null when a city cannot be determined
--- safely. The interface presents those rows as "Unknown city" for filtering.
+-- Existing rows intentionally remain null. The interface presents those rows
+-- as "Unknown location" until either partner adds a city, province, state,
+-- country, or another location label that is useful to them.
 update public.places
-set city = null
-where city is not null
-  and trim(city) = '';
+set location = null
+where location is not null
+  and trim(location) = '';
 
 do $$
 begin
   if not exists (
     select 1
     from pg_constraint
-    where conname = 'places_city_length_check'
+    where conname = 'places_location_length_check'
       and conrelid = 'public.places'::regclass
   ) then
     alter table public.places
-      add constraint places_city_length_check
-      check (city is null or char_length(trim(city)) between 1 and 120);
+      add constraint places_location_length_check
+      check (
+        location is null
+        or char_length(trim(location)) between 1 and 120
+      );
   end if;
 end;
 $$;
 
-create index if not exists places_couple_city_idx
-  on public.places (couple_id, lower(city));
+create index if not exists places_couple_location_idx
+  on public.places (couple_id, lower(location));
 
-grant update (city)
+grant update (location)
   on public.places
   to authenticated;
 

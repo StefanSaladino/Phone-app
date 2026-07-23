@@ -739,7 +739,7 @@
   gap: 0.85rem;
 }
 
-.place-city-filter {
+.place-location-filter {
   display: grid;
   gap: 0.45rem;
   width: min(100%, 22rem);
@@ -748,17 +748,17 @@
   font-weight: 800;
 }
 
-.place-city-filter > span {
+.place-location-filter > span {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
 }
 
-.place-city-filter > span svg {
+.place-location-filter > span svg {
   color: var(--color-accent);
 }
 
-.place-city-filter select {
+.place-location-filter select {
   width: 100%;
   min-width: 0;
   min-height: 3rem;
@@ -873,7 +873,7 @@
   line-height: 1.45;
 }
 
-.place-card__city {
+.place-card__location {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -884,12 +884,12 @@
   font-weight: 800;
 }
 
-.place-card__city.is-unknown {
+.place-card__location.is-unknown {
   color: var(--color-muted);
   font-weight: 700;
 }
 
-.place-card__city svg {
+.place-card__location svg {
   flex: 0 0 auto;
 }
 

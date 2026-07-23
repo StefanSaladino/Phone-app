@@ -89,10 +89,11 @@ const canadianPostalCodePattern = /\b[A-Z]\d[A-Z][ -]?\d[A-Z]\d\b/gi;
 const usZipCodePattern = /\b\d{5}(?:-\d{4})?\b/g;
 
 /**
- * Makes a conservative city guess from a comma-separated street address.
- * The result is only a convenience for the form and is always editable.
+ * Makes a conservative location suggestion from a comma-separated address.
+ * It normally returns the city/locality while leaving the user free to replace
+ * it with any grouping label, such as a province, state, or country.
  */
-export function inferCityFromAddress(address: string): string | null {
+export function inferLocationFromAddress(address: string): string | null {
   const parts = address
     .split(',')
     .map((part) => part.trim())

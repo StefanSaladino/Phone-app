@@ -1,5 +1,5 @@
 import { normalizeExternalUrl, normalizeGoogleMapsUrl } from '../lib/placeLinks';
-import { inferCityFromAddress } from '../lib/placeCity';
+import { inferLocationFromAddress } from '../lib/placeLocation';
 import { supabase } from '../lib/supabase';
 import type { Place, PlaceValues } from '../types/place';
 
@@ -16,7 +16,7 @@ interface UpdatePlaceOptions {
 }
 
 const placeColumns =
-  'id, couple_id, created_by, name, category, city, address, website_url, maps_url, notes, visited, is_favorite, created_at, updated_at';
+  'id, couple_id, created_by, name, category, location, address, website_url, maps_url, notes, visited, is_favorite, created_at, updated_at';
 
 /**
  * Converts unknown Supabase errors into stable application errors.
@@ -30,12 +30,13 @@ function toError(error: unknown, fallbackMessage: string): Error {
  * Builds the database payload in one place so create and edit stay consistent.
  */
 function buildPlacePayload(values: PlaceValues) {
-  const city = values.city.trim() || inferCityFromAddress(values.address);
+  const location =
+    values.location.trim() || inferLocationFromAddress(values.address);
 
   return {
     name: values.name.trim(),
     category: values.category,
-    city,
+    location,
     address: values.address.trim() || null,
     website_url: normalizeExternalUrl(values.websiteUrl),
     maps_url: normalizeGoogleMapsUrl(values.mapsUrl),

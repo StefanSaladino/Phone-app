@@ -132,7 +132,7 @@ export function BetSettlementPanel({
     return (
       <section className="bet-settlement-panel bet-settlement-panel--complete">
         <AppIcon name="undo" size={21} />
-        <div>
+        <div className="bet-settlement-result-copy">
           <span className="bet-settlement-panel__eyebrow">Settled as a draw</span>
           <strong>No prize or punishment was selected.</strong>
         </div>
@@ -248,7 +248,7 @@ export function BetSettlementPanel({
     return (
       <section className="bet-settlement-panel bet-settlement-panel--complete">
         <AppIcon name="check" size={21} />
-        <div>
+        <div className="bet-settlement-result-copy">
           <span className="bet-settlement-panel__eyebrow">Completed together</span>
           <strong>{settlement.selected_title}</strong>
           <p>Both people confirmed that this playful result is complete.</p>
@@ -260,7 +260,7 @@ export function BetSettlementPanel({
   return (
     <section className="bet-settlement-panel bet-settlement-panel--complete">
       <AppIcon name="heart" size={21} />
-      <div>
+      <div className="bet-settlement-result-copy">
         <span className="bet-settlement-panel__eyebrow">Outcome waived</span>
         <strong>{settlement.selected_title}</strong>
         <p>The winner chose to let this result go.</p>

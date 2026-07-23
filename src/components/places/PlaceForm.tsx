@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { inferCityFromAddress } from '../../lib/placeCity';
+import { inferLocationFromAddress } from '../../lib/placeLocation';
 import { normalizeExternalUrl, normalizeGoogleMapsUrl } from '../../lib/placeLinks';
 import type { Place, PlaceCategory, PlaceValues } from '../../types/place';
 import { AppIcon } from '../ui/AppIcon';
@@ -15,7 +15,7 @@ interface PlaceFormProps {
 const emptyValues: PlaceValues = {
   name: '',
   category: 'food',
-  city: '',
+  location: '',
   address: '',
   websiteUrl: '',
   mapsUrl: '',
@@ -57,7 +57,7 @@ export function PlaceForm({
         ? {
             name: place.name,
             category: place.category,
-            city: place.city ?? '',
+            location: place.location ?? '',
             address: place.address ?? '',
             websiteUrl: place.website_url ?? '',
             mapsUrl: place.maps_url ?? '',
@@ -93,7 +93,8 @@ export function PlaceForm({
 
   const submitForm = async () => {
     const name = values.name.trim();
-    const city = values.city.trim() || inferCityFromAddress(values.address) || '';
+    const location =
+      values.location.trim() || inferLocationFromAddress(values.address) || '';
 
     if (!name) {
       setValidationError('Give the place a name first.');
@@ -105,13 +106,13 @@ export function PlaceForm({
       return;
     }
 
-    if (!city) {
-      setValidationError('Add the city so this place can be filtered by location.');
+    if (!location) {
+      setValidationError('Add a location so this place can be filtered.');
       return;
     }
 
-    if (city.length > 120) {
-      setValidationError('Keep the city to 120 characters or fewer.');
+    if (location.length > 120) {
+      setValidationError('Keep the location to 120 characters or fewer.');
       return;
     }
 
@@ -119,12 +120,14 @@ export function PlaceForm({
       normalizeExternalUrl(values.websiteUrl);
       normalizeGoogleMapsUrl(values.mapsUrl);
     } catch (error) {
-      setValidationError(error instanceof Error ? error.message : 'Check the links and try again.');
+      setValidationError(
+        error instanceof Error ? error.message : 'Check the links and try again.',
+      );
       return;
     }
 
     setValidationError(null);
-    await onSubmit({ ...values, name, city });
+    await onSubmit({ ...values, name, location });
   };
 
   return (
@@ -167,152 +170,183 @@ export function PlaceForm({
         </header>
 
         <div className="form-stack">
-            <label className="field-group">
-              <span>Place name</span>
-              <input
-                autoFocus
-                type="text"
-                maxLength={140}
-                value={values.name}
-                placeholder="Favourite café or activity"
-                onChange={(event) =>
-                  setValues((current) => ({ ...current, name: event.target.value }))
-                }
-              />
-            </label>
+          <label className="field-group">
+            <span>Place name</span>
+            <input
+              autoFocus
+              type="text"
+              maxLength={140}
+              value={values.name}
+              placeholder="Favourite café or activity"
+              onChange={(event) =>
+                setValues((current) => ({ ...current, name: event.target.value }))
+              }
+            />
+          </label>
 
-            <label className="field-group">
-              <span>Category</span>
-              <select
-                value={values.category}
+          <label className="field-group">
+            <span>Category</span>
+            <select
+              value={values.category}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  category: event.target.value as PlaceCategory,
+                }))
+              }
+            >
+              {categories.map((category) => (
+                <option value={category.value} key={category.value}>
+                  {category.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field-group">
+            <span>Location</span>
+            <input
+              type="text"
+              maxLength={120}
+              value={values.location}
+              placeholder="Toronto, Ontario, Canada, California…"
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  location: event.target.value,
+                }))
+              }
+            />
+            <small>
+              Use any grouping that helps you organize places, such as a city,
+              province, state, or country.
+            </small>
+          </label>
+
+          <label className="field-group">
+            <span>
+              Address <small>optional</small>
+            </span>
+            <input
+              type="text"
+              maxLength={300}
+              value={values.address}
+              placeholder="123 Example Street, Toronto"
+              onChange={(event) =>
+                setValues((current) => ({ ...current, address: event.target.value }))
+              }
+              onBlur={() => {
+                setValues((current) => {
+                  if (current.location.trim()) return current;
+
+                  const inferredLocation = inferLocationFromAddress(current.address);
+                  return inferredLocation
+                    ? { ...current, location: inferredLocation }
+                    : current;
+                });
+              }}
+            />
+            <small>
+              Used for Google Maps. We may suggest a location from the address,
+              but you can replace it with any label you prefer.
+            </small>
+          </label>
+
+          <label className="field-group">
+            <span>
+              Website <small>optional</small>
+            </span>
+            <input
+              type="url"
+              inputMode="url"
+              value={values.websiteUrl}
+              placeholder="example.com"
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  websiteUrl: event.target.value,
+                }))
+              }
+            />
+          </label>
+
+          <label className="field-group">
+            <span>
+              Google Maps link <small>optional</small>
+            </span>
+            <input
+              type="url"
+              inputMode="url"
+              value={values.mapsUrl}
+              placeholder="https://maps.app.goo.gl/..."
+              onChange={(event) =>
+                setValues((current) => ({ ...current, mapsUrl: event.target.value }))
+              }
+            />
+            <small>In Google Maps, choose Share, then copy and paste the link here.</small>
+          </label>
+
+          <label className="field-group">
+            <span>
+              Notes <small>optional</small>
+            </span>
+            <textarea
+              rows={4}
+              maxLength={1500}
+              value={values.notes}
+              placeholder="What should we order, when should we go, or why did this look good?"
+              onChange={(event) =>
+                setValues((current) => ({ ...current, notes: event.target.value }))
+              }
+            />
+          </label>
+
+          <div className="place-form-options">
+            <label className="favorite-check">
+              <input
+                type="checkbox"
+                checked={values.isFavorite}
                 onChange={(event) =>
                   setValues((current) => ({
                     ...current,
-                    category: event.target.value as PlaceCategory,
+                    isFavorite: event.target.checked,
                   }))
                 }
-              >
-                {categories.map((category) => (
-                  <option value={category.value} key={category.value}>
-                    {category.label}
-                  </option>
-                ))}
-              </select>
+              />
+              <span aria-hidden="true">♥</span>
+              Favourite
             </label>
 
-            <label className="field-group">
-              <span>City</span>
+            <label className="favorite-check">
               <input
-                type="text"
-                maxLength={120}
-                value={values.city}
-                placeholder="Toronto"
+                type="checkbox"
+                checked={values.visited}
                 onChange={(event) =>
-                  setValues((current) => ({ ...current, city: event.target.value }))
+                  setValues((current) => ({
+                    ...current,
+                    visited: event.target.checked,
+                  }))
                 }
               />
-              <small>
-                Used by the location filter. We will try to fill it from the address when possible.
-              </small>
+              <AppIcon name="check" size={18} />
+              Already visited
             </label>
+          </div>
 
-            <label className="field-group">
-              <span>Address <small>optional</small></span>
-              <input
-                type="text"
-                maxLength={300}
-                value={values.address}
-                placeholder="123 Example Street, Toronto"
-                onChange={(event) =>
-                  setValues((current) => ({ ...current, address: event.target.value }))
-                }
-                onBlur={() => {
-                  setValues((current) => {
-                    if (current.city.trim()) return current;
-
-                    const inferredCity = inferCityFromAddress(current.address);
-                    return inferredCity ? { ...current, city: inferredCity } : current;
-                  });
-                }}
-              />
-              <small>Used to create a Google Maps search when no share link is pasted.</small>
-            </label>
-
-            <label className="field-group">
-              <span>Website <small>optional</small></span>
-              <input
-                type="url"
-                inputMode="url"
-                value={values.websiteUrl}
-                placeholder="example.com"
-                onChange={(event) =>
-                  setValues((current) => ({ ...current, websiteUrl: event.target.value }))
-                }
-              />
-            </label>
-
-            <label className="field-group">
-              <span>Google Maps link <small>optional</small></span>
-              <input
-                type="url"
-                inputMode="url"
-                value={values.mapsUrl}
-                placeholder="https://maps.app.goo.gl/..."
-                onChange={(event) =>
-                  setValues((current) => ({ ...current, mapsUrl: event.target.value }))
-                }
-              />
-              <small>In Google Maps, choose Share, then copy and paste the link here.</small>
-            </label>
-
-            <label className="field-group">
-              <span>Notes <small>optional</small></span>
-              <textarea
-                rows={4}
-                maxLength={1500}
-                value={values.notes}
-                placeholder="What should we order, when should we go, or why did this look good?"
-                onChange={(event) =>
-                  setValues((current) => ({ ...current, notes: event.target.value }))
-                }
-              />
-            </label>
-
-            <div className="place-form-options">
-              <label className="favorite-check">
-                <input
-                  type="checkbox"
-                  checked={values.isFavorite}
-                  onChange={(event) =>
-                    setValues((current) => ({ ...current, isFavorite: event.target.checked }))
-                  }
-                />
-                <span aria-hidden="true">♥</span>
-                Favourite
-              </label>
-
-              <label className="favorite-check">
-                <input
-                  type="checkbox"
-                  checked={values.visited}
-                  onChange={(event) =>
-                    setValues((current) => ({ ...current, visited: event.target.checked }))
-                  }
-                />
-                <AppIcon name="check" size={18} />
-                Already visited
-              </label>
-            </div>
-
-            {validationError || serverError ? (
-              <p className="form-message form-message--error" role="alert">
-                {validationError ?? serverError}
-              </p>
-            ) : null}
+          {validationError || serverError ? (
+            <p className="form-message form-message--error" role="alert">
+              {validationError ?? serverError}
+            </p>
+          ) : null}
         </div>
 
         <footer className="idea-form-card__actions place-form-card__actions">
-          <button className="secondary-button" type="button" onClick={onCancel} disabled={submitting}>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={onCancel}
+            disabled={submitting}
+          >
             Cancel
           </button>
           <button className="primary-button" type="submit" disabled={submitting}>

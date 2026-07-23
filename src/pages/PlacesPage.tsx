@@ -13,8 +13,8 @@ import {
   updatePlace,
 } from '../services/placeService';
 import {
-  ALL_CITIES_FILTER,
-  UNKNOWN_CITY_FILTER,
+  ALL_LOCATIONS_FILTER,
+  UNKNOWN_LOCATION_FILTER,
   type Place,
   type PlaceFilter,
   type PlaceValues,
@@ -37,6 +37,19 @@ function sortPlaces(places: Place[]): Place[] {
   });
 }
 
+/** Checks a place against the selected flexible location grouping. */
+function matchesLocationFilter(place: Place, locationFilter: string): boolean {
+  if (locationFilter === ALL_LOCATIONS_FILTER) return true;
+  if (locationFilter === UNKNOWN_LOCATION_FILTER) return !place.location?.trim();
+
+  return Boolean(
+    place.location &&
+      place.location.localeCompare(locationFilter, undefined, {
+        sensitivity: 'base',
+      }) === 0,
+  );
+}
+
 /**
  * Complete shared place library with categories, search, links, and quick actions.
  */
@@ -44,7 +57,7 @@ export function PlacesPage() {
   const { workspace, refreshWorkspace } = useCouple();
   const [places, setPlaces] = useState<Place[]>([]);
   const [filter, setFilter] = useState<PlaceFilter>('all');
-  const [cityFilter, setCityFilter] = useState(ALL_CITIES_FILTER);
+  const [locationFilter, setLocationFilter] = useState(ALL_LOCATIONS_FILTER);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -66,7 +79,9 @@ export function PlacesPage() {
     try {
       setPlaces(await listPlaces(workspace.couple.id));
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : 'Unable to load the shared places.');
+      setLoadError(
+        error instanceof Error ? error.message : 'Unable to load the shared places.',
+      );
     } finally {
       setLoading(false);
     }
@@ -76,64 +91,76 @@ export function PlacesPage() {
     void loadSavedPlaces();
   }, [loadSavedPlaces]);
 
-  const counts = useMemo<Record<PlaceFilter, number>>(
-    () => ({
-      all: places.length,
-      food: places.filter((place) => place.category === 'food').length,
-      coffee: places.filter((place) => place.category === 'coffee').length,
-      drinks: places.filter((place) => place.category === 'drinks').length,
-      dessert: places.filter((place) => place.category === 'dessert').length,
-      recreation: places.filter((place) => place.category === 'recreation').length,
-      favorites: places.filter((place) => place.is_favorite).length,
-      'want-to-go': places.filter((place) => !place.visited).length,
-      visited: places.filter((place) => place.visited).length,
-    }),
-    [places],
-  );
-
-  const cityOptions = useMemo(() => {
-    const citiesByNormalizedName = new Map<string, string>();
+  const locationOptions = useMemo(() => {
+    const locationsByNormalizedName = new Map<string, string>();
 
     for (const place of places) {
-      const city = place.city?.trim();
-      if (!city) continue;
+      const location = place.location?.trim();
+      if (!location) continue;
 
-      const normalizedCity = city.toLocaleLowerCase();
-      if (!citiesByNormalizedName.has(normalizedCity)) {
-        citiesByNormalizedName.set(normalizedCity, city);
+      const normalizedLocation = location.toLocaleLowerCase();
+      if (!locationsByNormalizedName.has(normalizedLocation)) {
+        locationsByNormalizedName.set(normalizedLocation, location);
       }
     }
 
-    return [...citiesByNormalizedName.values()].sort((first, second) =>
+    return [...locationsByNormalizedName.values()].sort((first, second) =>
       first.localeCompare(second, undefined, { sensitivity: 'base' }),
     );
   }, [places]);
 
-  const unknownCityCount = useMemo(
-    () => places.filter((place) => !place.city?.trim()).length,
+  const unknownLocationCount = useMemo(
+    () => places.filter((place) => !place.location?.trim()).length,
     [places],
   );
 
   useEffect(() => {
     if (
-      cityFilter === ALL_CITIES_FILTER ||
-      (cityFilter === UNKNOWN_CITY_FILTER && unknownCityCount > 0) ||
-      cityOptions.some(
-        (city) =>
-          city.localeCompare(cityFilter, undefined, { sensitivity: 'base' }) ===
-          0,
+      locationFilter === ALL_LOCATIONS_FILTER ||
+      (locationFilter === UNKNOWN_LOCATION_FILTER && unknownLocationCount > 0) ||
+      locationOptions.some(
+        (location) =>
+          location.localeCompare(locationFilter, undefined, {
+            sensitivity: 'base',
+          }) === 0,
       )
     ) {
       return;
     }
 
-    setCityFilter(ALL_CITIES_FILTER);
-  }, [cityFilter, cityOptions, unknownCityCount]);
+    setLocationFilter(ALL_LOCATIONS_FILTER);
+  }, [locationFilter, locationOptions, unknownLocationCount]);
+
+  /**
+   * Location is applied first so every category/status count reflects the
+   * currently selected location rather than the complete place library.
+   */
+  const locationFilteredPlaces = useMemo(
+    () => places.filter((place) => matchesLocationFilter(place, locationFilter)),
+    [locationFilter, places],
+  );
+
+  const counts = useMemo<Record<PlaceFilter, number>>(
+    () => ({
+      all: locationFilteredPlaces.length,
+      food: locationFilteredPlaces.filter((place) => place.category === 'food').length,
+      coffee: locationFilteredPlaces.filter((place) => place.category === 'coffee').length,
+      drinks: locationFilteredPlaces.filter((place) => place.category === 'drinks').length,
+      dessert: locationFilteredPlaces.filter((place) => place.category === 'dessert').length,
+      recreation: locationFilteredPlaces.filter(
+        (place) => place.category === 'recreation',
+      ).length,
+      favorites: locationFilteredPlaces.filter((place) => place.is_favorite).length,
+      'want-to-go': locationFilteredPlaces.filter((place) => !place.visited).length,
+      visited: locationFilteredPlaces.filter((place) => place.visited).length,
+    }),
+    [locationFilteredPlaces],
+  );
 
   const visiblePlaces = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
-    return places.filter((place) => {
+    return locationFilteredPlaces.filter((place) => {
       const matchesFilter =
         filter === 'all' ||
         (filter === 'favorites' && place.is_favorite) ||
@@ -141,24 +168,20 @@ export function PlacesPage() {
         (filter === 'visited' && place.visited) ||
         place.category === filter;
 
-      const matchesCity =
-        cityFilter === ALL_CITIES_FILTER ||
-        (cityFilter === UNKNOWN_CITY_FILTER && !place.city?.trim()) ||
-        Boolean(
-          place.city &&
-            place.city.localeCompare(cityFilter, undefined, {
-              sensitivity: 'base',
-            }) === 0,
-        );
-
-      if (!matchesFilter || !matchesCity) return false;
+      if (!matchesFilter) return false;
       if (!normalizedQuery) return true;
 
-      return [place.name, place.city, place.address, place.notes, place.category]
+      return [
+        place.name,
+        place.location,
+        place.address,
+        place.notes,
+        place.category,
+      ]
         .filter(Boolean)
         .some((value) => value?.toLowerCase().includes(normalizedQuery));
     });
-  }, [cityFilter, filter, places, searchQuery]);
+  }, [filter, locationFilteredPlaces, searchQuery]);
 
   const closeForm = () => {
     if (submitting) return;
@@ -194,7 +217,11 @@ export function PlacesPage() {
         });
 
         setPlaces((current) =>
-          sortPlaces(current.map((place) => (place.id === updatedPlace.id ? updatedPlace : place))),
+          sortPlaces(
+            current.map((place) =>
+              place.id === updatedPlace.id ? updatedPlace : place,
+            ),
+          ),
         );
       } else {
         const createdPlace = await createPlace({
@@ -211,7 +238,9 @@ export function PlacesPage() {
       setFormError(null);
       void refreshWorkspace();
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Unable to save this place.');
+      setFormError(
+        error instanceof Error ? error.message : 'Unable to save this place.',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -229,12 +258,16 @@ export function PlacesPage() {
     try {
       const updatedPlace = await patchPlace(workspace.couple.id, place.id, patch);
       setPlaces((current) =>
-        sortPlaces(current.map((currentPlace) =>
-          currentPlace.id === updatedPlace.id ? updatedPlace : currentPlace,
-        )),
+        sortPlaces(
+          current.map((currentPlace) =>
+            currentPlace.id === updatedPlace.id ? updatedPlace : currentPlace,
+          ),
+        ),
       );
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : 'Unable to update this place.');
+      setLoadError(
+        error instanceof Error ? error.message : 'Unable to update this place.',
+      );
     } finally {
       setBusyPlaceId(null);
     }
@@ -252,7 +285,9 @@ export function PlacesPage() {
       setPlaceToDelete(null);
       void refreshWorkspace();
     } catch (error) {
-      setDeleteError(error instanceof Error ? error.message : 'Unable to delete this place.');
+      setDeleteError(
+        error instanceof Error ? error.message : 'Unable to delete this place.',
+      );
     } finally {
       setDeleting(false);
     }
@@ -279,11 +314,15 @@ export function PlacesPage() {
         <input
           type="search"
           value={searchQuery}
-          placeholder="Search names, addresses, or notes"
+          placeholder="Search names, locations, addresses, or notes"
           onChange={(event) => setSearchQuery(event.target.value)}
         />
         {searchQuery ? (
-          <button type="button" onClick={() => setSearchQuery('')} aria-label="Clear place search">
+          <button
+            type="button"
+            onClick={() => setSearchQuery('')}
+            aria-label="Clear place search"
+          >
             <AppIcon name="close" size={16} />
           </button>
         ) : null}
@@ -291,12 +330,12 @@ export function PlacesPage() {
 
       <PlaceFilters
         activeFilter={filter}
-        activeCityFilter={cityFilter}
-        cities={cityOptions}
+        activeLocationFilter={locationFilter}
+        locations={locationOptions}
         counts={counts}
-        unknownCityCount={unknownCityCount}
+        unknownLocationCount={unknownLocationCount}
         onChange={setFilter}
-        onCityChange={setCityFilter}
+        onLocationChange={setLocationFilter}
       />
 
       {loadError ? (
@@ -305,7 +344,11 @@ export function PlacesPage() {
             <strong>Something went wrong</strong>
             <p>{loadError}</p>
           </div>
-          <button className="secondary-button" type="button" onClick={() => void loadSavedPlaces()}>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => void loadSavedPlaces()}
+          >
             Try again
           </button>
         </section>
@@ -313,7 +356,9 @@ export function PlacesPage() {
 
       {loading ? (
         <section className="empty-state empty-state--compact" aria-live="polite">
-          <span className="empty-state__mark" aria-hidden="true">⌖</span>
+          <span className="empty-state__mark" aria-hidden="true">
+            ⌖
+          </span>
           <h3>Loading your places…</h3>
         </section>
       ) : visiblePlaces.length > 0 ? (
@@ -329,7 +374,9 @@ export function PlacesPage() {
                 setPlaceToDelete(selectedPlace);
               }}
               onToggleFavorite={(selectedPlace) =>
-                runQuickUpdate(selectedPlace, { is_favorite: !selectedPlace.is_favorite })
+                runQuickUpdate(selectedPlace, {
+                  is_favorite: !selectedPlace.is_favorite,
+                })
               }
               onToggleVisited={(selectedPlace) =>
                 runQuickUpdate(selectedPlace, { visited: !selectedPlace.visited })
@@ -339,7 +386,9 @@ export function PlacesPage() {
         </section>
       ) : (
         <section className="empty-state">
-          <span className="empty-state__mark" aria-hidden="true">⌖</span>
+          <span className="empty-state__mark" aria-hidden="true">
+            ⌖
+          </span>
           <h3>{places.length === 0 ? 'No places saved yet' : 'No matching places'}</h3>
           <p>
             {places.length === 0
@@ -347,7 +396,11 @@ export function PlacesPage() {
               : 'Try a different category or location, or clear the search.'}
           </p>
           {places.length === 0 ? (
-            <button className="primary-button empty-state__button" type="button" onClick={openCreateForm}>
+            <button
+              className="primary-button empty-state__button"
+              type="button"
+              onClick={openCreateForm}
+            >
               <AppIcon name="plus" size={18} />
               Save your first place
             </button>

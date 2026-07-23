@@ -1,18 +1,18 @@
 import {
-  ALL_CITIES_FILTER,
-  UNKNOWN_CITY_FILTER,
+  ALL_LOCATIONS_FILTER,
+  UNKNOWN_LOCATION_FILTER,
   type PlaceFilter,
 } from '../../types/place';
 import { AppIcon } from '../ui/AppIcon';
 
 interface PlaceFiltersProps {
   activeFilter: PlaceFilter;
-  activeCityFilter: string;
-  cities: string[];
+  activeLocationFilter: string;
+  locations: string[];
   counts: Record<PlaceFilter, number>;
-  unknownCityCount: number;
+  unknownLocationCount: number;
   onChange: (filter: PlaceFilter) => void;
-  onCityChange: (city: string) => void;
+  onLocationChange: (location: string) => void;
 }
 
 const filters: Array<{ value: PlaceFilter; label: string }> = [
@@ -27,15 +27,15 @@ const filters: Array<{ value: PlaceFilter; label: string }> = [
   { value: 'favorites', label: 'Favourites' },
 ];
 
-/** Category/status chips plus a separate location filter. */
+/** Category/status chips plus a separate flexible location filter. */
 export function PlaceFilters({
   activeFilter,
-  activeCityFilter,
-  cities,
+  activeLocationFilter,
+  locations,
   counts,
-  unknownCityCount,
+  unknownLocationCount,
   onChange,
-  onCityChange,
+  onLocationChange,
 }: PlaceFiltersProps) {
   return (
     <section className="place-filter-stack" aria-label="Filter saved places">
@@ -54,28 +54,28 @@ export function PlaceFilters({
         ))}
       </div>
 
-      <label className="place-city-filter">
+      <label className="place-location-filter">
         <span>
           <AppIcon name="map" size={18} />
           Location
         </span>
 
         <select
-          aria-label="Filter saved places by city"
-          value={activeCityFilter}
-          onChange={(event) => onCityChange(event.target.value)}
+          aria-label="Filter saved places by location"
+          value={activeLocationFilter}
+          onChange={(event) => onLocationChange(event.target.value)}
         >
-          <option value={ALL_CITIES_FILTER}>All locations</option>
+          <option value={ALL_LOCATIONS_FILTER}>All locations</option>
 
-          {cities.map((city) => (
-            <option value={city} key={city.toLocaleLowerCase()}>
-              {city}
+          {locations.map((location) => (
+            <option value={location} key={location.toLocaleLowerCase()}>
+              {location}
             </option>
           ))}
 
-          {unknownCityCount > 0 ? (
-            <option value={UNKNOWN_CITY_FILTER}>
-              Unknown city ({unknownCityCount})
+          {unknownLocationCount > 0 ? (
+            <option value={UNKNOWN_LOCATION_FILTER}>
+              Unknown location ({unknownLocationCount})
             </option>
           ) : null}
         </select>

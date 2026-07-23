@@ -57,9 +57,9 @@ export function PlaceCard({
           {place.visited ? <span className="visited-label">Visited</span> : null}
         </div>
 
-        <p className={`place-card__city${place.city ? '' : ' is-unknown'}`}>
+        <p className={`place-card__location${place.location ? '' : ' is-unknown'}`}>
           <AppIcon name="places" size={17} />
-          <span>{place.city ?? 'Unknown city'}</span>
+          <span>{place.location ?? 'Unknown location'}</span>
         </p>
 
         {place.address ? (

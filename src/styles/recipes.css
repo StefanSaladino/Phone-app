@@ -6,11 +6,22 @@
   padding-bottom: 1rem;
 }
 
+.recipes-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
 .recipes-hero::after {
-  content: '♨';
+  /* Force a monochrome glyph, then dim it so it never competes with the copy. */
+  content: '\2668\FE0E';
   right: 0.5rem;
   bottom: -2rem;
+  z-index: 0;
+  color: var(--color-accent-deep);
   font-size: 8rem;
+  opacity: 0.12;
+  filter: grayscale(1);
+  pointer-events: none;
 }
 
 .recipe-grid {
