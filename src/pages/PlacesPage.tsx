@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { DeletePlaceDialog } from '../components/places/DeletePlaceDialog';
 import { PlaceCard } from '../components/places/PlaceCard';
 import { PlaceFilters } from '../components/places/PlaceFilters';
 import { PlaceForm } from '../components/places/PlaceForm';
+import { PlacesMapModal } from '../components/places/PlacesMapModal';
 import { AppIcon } from '../components/ui/AppIcon';
 import { useCouple } from '../hooks/useCouple';
 import {
@@ -66,6 +67,7 @@ export function PlacesPage() {
   const [editingPlace, setEditingPlace] = useState<Place | null>(null);
   const [placeToDelete, setPlaceToDelete] = useState<Place | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [busyPlaceId, setBusyPlaceId] = useState<string | null>(null);
@@ -315,7 +317,7 @@ export function PlacesPage() {
           type="search"
           value={searchQuery}
           placeholder="Search names, locations, addresses, or notes"
-          onChange={(event) => setSearchQuery(event.target.value)}
+          onChange={(event: ChangeEvent<HTMLInputElement>) => setSearchQuery(event.target.value)}
         />
         {searchQuery ? (
           <button
@@ -337,6 +339,22 @@ export function PlacesPage() {
         onChange={setFilter}
         onLocationChange={setLocationFilter}
       />
+
+      {!loading && visiblePlaces.length > 0 ? (
+        <section className="places-map-action" aria-label="Map current place results">
+          <div className="places-map-action__copy">
+            <strong>
+              {visiblePlaces.length}{' '}
+              {visiblePlaces.length === 1 ? 'place matches' : 'places match'} the current filters
+            </strong>
+            <span>Open a map containing exactly these visible results.</span>
+          </div>
+          <button className="secondary-button" type="button" onClick={() => setMapOpen(true)}>
+            <AppIcon name="map" size={18} />
+            View {visiblePlaces.length} on map
+          </button>
+        </section>
+      ) : null}
 
       {loadError ? (
         <section className="inline-error" role="alert">
@@ -430,6 +448,10 @@ export function PlacesPage() {
           }}
           onConfirm={confirmDelete}
         />
+      ) : null}
+
+      {mapOpen ? (
+        <PlacesMapModal places={visiblePlaces} onClose={() => setMapOpen(false)} />
       ) : null}
     </div>
   );
